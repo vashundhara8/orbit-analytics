@@ -1,0 +1,101 @@
+user_id,signup_date,company_size,industry,acquisition_channel,plan_type
+u_000000,2024-02-18,enterprise,Education,paid_search,trial
+u_000001,2025-02-26,smb,Media,organic,trial
+u_000002,2024-12-23,smb,Media,partner,pro
+u_000003,2024-08-27,startup,Media,paid_search,pro
+u_000004,2024-08-24,smb,Media,referral,pro
+u_000005,2025-04-13,smb,Retail,organic,enterprise
+u_000006,2024-02-16,smb,Healthcare,organic,pro
+u_000007,2025-01-15,startup,Retail,referral,trial
+u_000008,2024-04-20,enterprise,Professional Services,paid_search,pro
+u_000009,2024-02-21,startup,Manufacturing,paid_search,enterprise
+u_000010,2024-10-14,mid-market,Healthcare,referral,trial
+u_000011,2025-06-16,enterprise,Finance,organic,free
+u_000012,2025-02-05,startup,Professional Services,paid_search,trial
+u_000013,2025-02-19,smb,Healthcare,referral,trial
+u_000014,2025-01-26,smb,Healthcare,paid_search,pro
+u_000015,2025-03-05,enterprise,Healthcare,paid_search,pro
+u_000016,2024-10-07,enterprise,Manufacturing,referral,free
+u_000017,2024-03-10,smb,Education,paid_search,trial
+u_000018,2025-04-03,enterprise,Media,organic,enterprise
+u_000019,2024-09-02,startup,Technology,organic,free
+u_000020,2024-09-30,startup,Manufacturing,organic,trial
+u_000021,2024-07-21,smb,Media,organic,pro
+u_000022,2024-04-09,mid-market,Manufacturing,organic,free
+u_000023,2025-05-21,startup,Manufacturing,organic,trial
+u_000024,2025-03-02,mid-market,Professional Services,referral,pro
+u_000025,2024-12-17,startup,Finance,organic,pro
+u_000026,2024-08-07,startup,Finance,referral,trial
+u_000027,2025-03-25,enterprise,Finance,organic,pro
+u_000028,2024-10-24,mid-market,Finance,partner,trial
+u_000029,2024-08-30,smb,Education,paid_search,trial
+u_000030,2024-09-02,mid-market,Technology,paid_search,free
+u_000031,2024-05-04,smb,Education,paid_search,trial
+u_000032,2024-02-20,startup,Manufacturing,paid_search,free
+u_000033,2024-10-29,smb,Education,referral,free
+u_000034,2025-04-29,enterprise,Education,organic,free
+u_000035,2024-02-04,startup,Professional Services,referral,free
+u_000036,2025-04-13,startup,Education,organic,trial
+u_000037,2025-03-27,mid-market,Technology,referral,pro
+u_000038,2024-05-31,smb,Technology,organic,trial
+u_000039,2024-12-10,startup,Manufacturing,paid_search,pro
+u_000040,2024-03-31,smb,Media,organic,trial
+u_000041,2025-02-17,enterprise,Retail,referral,free
+u_000042,2025-01-17,startup,Education,organic,pro
+u_000043,2024-07-12,startup,Education,paid_search,trial
+u_000044,2024-02-07,smb,Technology,partner,free
+u_000045,2025-06-14,smb,Technology,paid_search,enterprise
+u_000046,2024-08-31,startup,Retail,organic,pro
+u_000047,2025-05-02,smb,Manufacturing,referral,free
+u_000048,2025-01-05,smb,Finance,referral,free
+u_000049,2025-02-28,smb,Technology,organic,free
+u_000050,2025-02-18,smb,Media,organic,enterprise
+u_000051,2024-04-16,startup,Manufacturing,organic,free
+u_000052,2024-07-17,startup,Healthcare,organic,trial
+u_000053,2024-09-11,mid-market,Manufacturing,organic,free
+u_000054,2024-09-28,smb,Retail,organic,enterprise
+u_000055,2024-01-24,smb,Finance,organic,free
+u_000056,2024-10-25,smb,Manufacturing,organic,free
+u_000057,2024-03-25,startup,Healthcare,referral,pro
+u_000058,2025-02-09,enterprise,Media,paid_search,trial
+u_000059,2025-01-07,mid-market,Retail,organic,free
+u_000060,2025-05-18,startup,Media,organic,trial
+u_000061,2025-02-10,startup,Finance,organic,enterprise
+u_000062,2024-07-19,startup,Finance,organic,trial
+u_000063,2025-06-12,startup,Media,organic,trial
+u_000064,2024-08-12,smb,Media,organic,free
+u_000065,2024-06-26,startup,Healthcare,paid_search,pro
+u_000066,2025-05-09,mid-market,Technology,partner,trial
+u_000067,2024-07-21,smb,Professional Services,referral,trial
+u_000068,2024-02-11,startup,Education,partner,pro
+u_000069,2024-09-13,startup,Technology,organic,trial
+u_000070,2025-03-10,startup,Retail,paid_search,trial
+u_000071,2024-04-13,smb,Healthcare,referral,trial
+u_000072,2024-09-09,smb,Retail,organic,trial
+u_000073,2024-03-11,smb,Education,organic,pro
+u_000074,2025-01-09,startup,Manufacturing,paid_search,free
+u_000075,2024-09-16,enterprise,Education,partner,free
+u_000076,2024-06-29,smb,Healthcare,referral,trial
+u_000077,2024-05-03,smb,Professional Services,organic,free
+u_000078,2024-11-04,smb,Media,organic,pro
+u_000079,2024-12-31,startup,Technology,organic,free
+u_000080,2025-05-28,mid-market,Professional Services,referral,free
+u_000081,2024-08-26,mid-market,Media,organic,free
+u_000082,2024-03-28,startup,Manufacturing,paid_search,pro
+u_000083,2025-03-30,startup,Healthcare,partner,pro
+u_000084,2024-12-09,smb,Retail,paid_search,trial
+u_000085,2025-01-17,smb,Healthcare,paid_search,enterprise
+u_000086,2024-02-23,enterprise,Manufacturing,organic,free
+u_000087,2024-06-19,smb,Technology,organic,trial
+u_000088,2025-02-23,enterprise,Media,paid_search,free
+u_000089,2025-03-30,startup,Manufacturing,partner,enterprise
+u_000090,2024-08-25,smb,Professional Services,organic,trial
+u_000091,2025-03-15,startup,Education,paid_search,trial
+u_000092,2025-04-04,enterprise,Finance,organic,free
+u_000093,2024-07-30,smb,Finance,organic,trial
+u_000094,2025-05-05,mid-market,Manufacturing,organic,trial
+u_000095,2024-06-06,startup,Media,paid_search,trial
+u_000096,2024-05-10,smb,Manufacturing,organic,enterprise
+u_000097,2025-01-07,smb,Professional Services,paid_search,free
+u_000098,2024-12-13,startup,Technology,organic,free
+u_000099,2024-03-17,mid-market,Retail,organic,trial
