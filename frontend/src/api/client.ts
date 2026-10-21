@@ -109,13 +109,17 @@ class ApiClient {
   async getCohorts(
     maxWeeks = 12,
     numCohorts = 15,
-    minCohortSize = 500
+    minCohortSize = 500,
+    startDate?: string,
+    endDate?: string
   ): Promise<CohortRetentionResponse> {
     const params = new URLSearchParams({
       max_weeks: maxWeeks.toString(),
       num_cohorts: numCohorts.toString(),
       min_cohort_size: minCohortSize.toString(),
     });
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
     return this.request<CohortRetentionResponse>(`/cohorts?${params.toString()}`);
   }
 

@@ -86,6 +86,8 @@ export interface CohortRetentionResponse {
   num_cohorts_returned: number;
   max_weeks_horizon: number;
   min_cohort_size_filter: number;
+  start_date?: string | null;
+  end_date?: string | null;
   milestones: CohortMilestones;
   cohorts: CohortRowItem[];
 }

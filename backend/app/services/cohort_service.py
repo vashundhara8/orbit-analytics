@@ -49,6 +49,14 @@ class CohortService:
         df["cohort_week_dt"] = pd.to_datetime(df["cohort_week"])
         df["cohort_week_str"] = df["cohort_week_dt"].dt.strftime("%Y-%m-%d")
 
+        # Apply date filters if specified
+        if params.start_date is not None:
+            df = df[df["cohort_week_dt"].dt.date >= params.start_date]
+        if params.end_date is not None:
+            df = df[df["cohort_week_dt"].dt.date <= params.end_date]
+        if df.empty:
+            return self._build_empty_response(params)
+
         # Extract initial cohort sizes from weeks_since_signup == 0
         w0_df = df[df["weeks_since_signup"] == 0][["cohort_week_str", "cohort_size"]].drop_duplicates()
 
@@ -69,6 +77,11 @@ class CohortService:
 
         filtered_df = filtered_df[filtered_df["cohort_week_str"].isin(selected_weeks)]
 
+        # Determine maximum observed activity horizon in data to distinguish elapsed vs future periods
+        max_cohort_dt = df["cohort_week_dt"].max()
+        max_weeks_in_data = int(df["weeks_since_signup"].max()) if not df.empty else 0
+        cutoff_date = max_cohort_dt + pd.Timedelta(weeks=max_weeks_in_data)
+
         # Build structured matrix rows
         cohort_rows: list[CohortRowItem] = []
         w1_rates: list[float] = []
@@ -80,6 +93,9 @@ class CohortService:
             cohort_data = filtered_df[filtered_df["cohort_week_str"] == week_str]
             c_size_series = cohort_data["cohort_size"]
             c_size = int(c_size_series.iloc[0]) if not c_size_series.empty else 0
+
+            cohort_dt = pd.to_datetime(week_str)
+            max_elapsed_for_cohort = max(0, int((cutoff_date - cohort_dt).total_seconds() // (7 * 86400)))
 
             # Build cell lookup by week
             week_map = {
@@ -111,7 +127,7 @@ class CohortService:
                             w8_rates.append(ret_r)
                         elif w == 12:
                             w12_rates.append(ret_r)
-                else:
+                elif w > max_elapsed_for_cohort:
                     # Incomplete / unobserved future period
                     cells.append(
                         CohortCellItem(
@@ -120,6 +136,23 @@ class CohortService:
                             retention_rate=None,
                         )
                     )
+                else:
+                    # Genuinely elapsed period with zero active users observed
+                    cells.append(
+                        CohortCellItem(
+                            weeks_since_signup=w,
+                            active_users=0,
+                            retention_rate=0.0,
+                        )
+                    )
+                    if w == 1:
+                        w1_rates.append(0.0)
+                    elif w == 4:
+                        w4_rates.append(0.0)
+                    elif w == 8:
+                        w8_rates.append(0.0)
+                    elif w == 12:
+                        w12_rates.append(0.0)
 
             cohort_rows.append(
                 CohortRowItem(
@@ -142,6 +175,8 @@ class CohortService:
             num_cohorts_returned=len(cohort_rows),
             max_weeks_horizon=params.max_weeks,
             min_cohort_size_filter=params.min_cohort_size,
+            start_date=params.start_date,
+            end_date=params.end_date,
             milestones=milestones,
             cohorts=cohort_rows,
         )
@@ -154,6 +189,8 @@ class CohortService:
             num_cohorts_returned=0,
             max_weeks_horizon=params.max_weeks,
             min_cohort_size_filter=params.min_cohort_size,
+            start_date=params.start_date,
+            end_date=params.end_date,
             milestones=CohortMilestones(),
             cohorts=[],
         )

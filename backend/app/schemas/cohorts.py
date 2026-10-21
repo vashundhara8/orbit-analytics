@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -45,12 +47,23 @@ class CohortRetentionParams(BaseModel):
         description="Minimum starting cohort size threshold to filter out tiny cohorts",
         examples=[500],
     )
+    start_date: date | None = Field(
+        None,
+        description="Inclusive signup start date (YYYY-MM-DD)",
+        examples=["2024-01-01"],
+    )
+    end_date: date | None = Field(
+        None,
+        description="Inclusive signup end date (YYYY-MM-DD)",
+        examples=["2025-06-29"],
+    )
 
     @model_validator(mode="after")
     def validate_bounds(self) -> CohortRetentionParams:
-        if self.max_weeks not in (4, 8, 12, 16, 24):
-            # allow standard analytical horizons
-            pass
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValueError(
+                f"start_date ({self.start_date}) must not be later than end_date ({self.end_date})"
+            )
         return self
 
 
@@ -60,5 +73,7 @@ class CohortRetentionResponse(BaseModel):
     num_cohorts_returned: int
     max_weeks_horizon: int
     min_cohort_size_filter: int
+    start_date: date | None = None
+    end_date: date | None = None
     milestones: CohortMilestones
     cohorts: list[CohortRowItem]

@@ -26,6 +26,7 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
       setLoading(true);
       setError(null);
 
+      await api.getDemoToken(tenantId);
       const listRes = await api.getExperiments();
       setExperiments(listRes);
 
@@ -36,7 +37,7 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => {
     loadData(selectedExperiment);
@@ -44,6 +45,22 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
 
   const control = analysis?.variants.find((v) => v.variant === 'control');
   const treatment = analysis?.variants.find((v) => v.variant === 'treatment');
+
+  const isSrm = Boolean(analysis?.srm.has_srm);
+  const isSignificant = Boolean(analysis?.significance.is_significant);
+  const isPositiveLift = Boolean(analysis && analysis.lift.absolute_lift > 0);
+
+  const bannerColor = isSrm
+    ? 'var(--accent-coral)'
+    : isSignificant
+    ? (isPositiveLift ? 'var(--accent-teal)' : 'var(--accent-amber)')
+    : 'var(--accent-sky)';
+
+  const bannerTitle = isSrm
+    ? 'Sample Ratio Mismatch Detected (Traffic Distorted — Cannot Declare Winner)'
+    : isSignificant
+    ? (isPositiveLift ? 'Statistically Significant Lift (Alpha = 0.05)' : 'Statistically Significant Negative Regression')
+    : 'Inconclusive / No Statistically Significant Difference';
 
   return (
     <div>
@@ -94,63 +111,77 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
 
       {analysis && !error && (
         <>
-          {/* Decision Advisory Banner */}
-          <div
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              border: `1px solid ${
-                analysis.significance.is_significant ? 'var(--accent-teal)' : 'var(--accent-amber)'
-              }`,
-              borderLeft: `5px solid ${
-                analysis.significance.is_significant ? 'var(--accent-teal)' : 'var(--accent-amber)'
-              }`,
-              borderRadius: 'var(--radius-md)',
-              padding: '20px 24px',
-              marginBottom: '28px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              {analysis.significance.is_significant ? (
-                <CheckCircle2 size={20} color="var(--accent-teal)" />
-              ) : (
-                <AlertTriangle size={20} color="var(--accent-amber)" />
-              )}
-              <span
-                style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontSize: '0.9rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  color: analysis.significance.is_significant
-                    ? 'var(--accent-teal)'
-                    : 'var(--accent-amber)',
-                }}
-              >
-                {analysis.significance.is_significant
-                  ? 'Statistically Significant (alpha = 0.05)'
-                  : 'Inconclusive / No Significant Lift'}
-              </span>
-            </div>
-
-            <div style={{ fontSize: '0.96rem', lineHeight: 1.6, color: 'var(--text-primary)' }}>
-              {analysis.decision_advisory}
-            </div>
-
+          {analysis.variants.length === 0 ? (
             <div
+              className="state-box"
               style={{
-                marginTop: '14px',
-                paddingTop: '10px',
-                borderTop: '1px solid var(--border-color)',
-                fontSize: '0.8rem',
-                color: 'var(--text-secondary)',
+                background: 'var(--bg-card)',
+                border: '1px dashed var(--border-color)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '48px 24px',
+                marginTop: '16px',
               }}
             >
-              <strong>Hypothesis:</strong> {analysis.hypothesis}
+              <FlaskConical size={44} color="var(--accent-teal)" style={{ marginBottom: '14px', opacity: 0.8 }} />
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px' }}>
+                Isolated Empty Workspace
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', maxWidth: '540px', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                Workspace <strong>{analysis.organization_name}</strong> ({analysis.tenant_id}) has strict tenant isolation enforced.
+                {' '}{analysis.decision_advisory}
+              </p>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Decision Advisory Banner */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  border: `1px solid ${bannerColor}`,
+                  borderLeft: `5px solid ${bannerColor}`,
+                  borderRadius: 'var(--radius-md)',
+                  padding: '20px 24px',
+                  marginBottom: '28px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  {isSignificant && !isSrm && isPositiveLift ? (
+                    <CheckCircle2 size={20} color={bannerColor} />
+                  ) : (
+                    <AlertTriangle size={20} color={bannerColor} />
+                  )}
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-heading)',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: bannerColor,
+                    }}
+                  >
+                    {bannerTitle}
+                  </span>
+                </div>
 
-          {/* KPI Summary Cards */}
+                <div style={{ fontSize: '0.96rem', lineHeight: 1.6, color: 'var(--text-primary)' }}>
+                  {analysis.decision_advisory}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '14px',
+                    paddingTop: '10px',
+                    borderTop: '1px solid var(--border-color)',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  <strong>Hypothesis:</strong> {analysis.hypothesis}
+                </div>
+              </div>
+
+              {/* KPI Summary Cards */}
           <div className="kpi-grid">
             <div className="kpi-card">
               <div className="kpi-card-header">
@@ -346,6 +377,8 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
               </div>
             </div>
           </div>
+            </>
+          )}
         </>
       )}
     </div>

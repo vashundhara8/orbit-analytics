@@ -103,3 +103,58 @@ def test_tenant_isolation_cohorts(acme_token: str):
     assert data["num_cohorts_returned"] == 0
     assert len(data["cohorts"]) == 0
     assert data["milestones"]["w1_retention_avg"] is None
+
+
+def test_cohort_retention_date_range_filtering(demo_token: str):
+    headers = {"Authorization": f"Bearer {demo_token}"}
+    response = client.get(
+        "/api/v1/cohorts?start_date=2024-01-01&end_date=2024-03-31&num_cohorts=10",
+        headers=headers,
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["start_date"] == "2024-01-01"
+    assert data["end_date"] == "2024-03-31"
+    for cohort in data["cohorts"]:
+        assert "2024-01-01" <= cohort["cohort_week"] <= "2024-03-31"
+
+
+def test_cohort_retention_inverted_dates_validation(demo_token: str):
+    headers = {"Authorization": f"Bearer {demo_token}"}
+    response = client.get(
+        "/api/v1/cohorts?start_date=2025-06-30&end_date=2024-01-01",
+        headers=headers,
+    )
+    assert response.status_code == 422
+    err_detail = response.json().get("detail", [])
+    assert any("start_date" in str(d) for d in err_detail)
+
+
+def test_cohort_retention_elapsed_period_masking(demo_token: str):
+    headers = {"Authorization": f"Bearer {demo_token}"}
+    response = client.get("/api/v1/cohorts?max_weeks=12&num_cohorts=5", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+
+    # For matured cohorts, verify retention values exist and follow monotonicity or realistic decay
+    for cohort in data["cohorts"]:
+        w0 = cohort["cells"][0]
+        assert w0["weeks_since_signup"] == 0
+        assert w0["active_users"] is not None
+        assert w0["retention_rate"] is not None
+        # Unobserved periods should be explicitly None (never manufactured as zero)
+        for cell in cohort["cells"]:
+            if cell["active_users"] is None:
+                assert cell["retention_rate"] is None
+
+
+def test_cohort_retention_empty_size_filter(demo_token: str):
+    headers = {"Authorization": f"Bearer {demo_token}"}
+    # No cohort has 1,000,000 users
+    response = client.get("/api/v1/cohorts?min_cohort_size=1000000", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["num_cohorts_returned"] == 0
+    assert len(data["cohorts"]) == 0
+    assert data["milestones"]["w1_retention_avg"] is None

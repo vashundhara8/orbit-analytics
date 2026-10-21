@@ -78,20 +78,28 @@ class ExperimentService:
         treatment_rows = matched[matched["variant"] == "treatment"]
 
         if control_rows.empty or treatment_rows.empty:
-            return self._build_empty_response(experiment_name)
+            return self._build_empty_response(
+                experiment_name,
+                advisory="Experiment data is incomplete: missing control or treatment variant. Cannot perform hypothesis testing.",
+            )
 
         c_row = control_rows.iloc[0]
         t_row = treatment_rows.iloc[0]
 
-        control_n = int(c_row["users"])
-        control_act = round(float(c_row["activated_users"]))
-        control_p = float(c_row["activation_rate"])
+        control_n = int(c_row["users"]) if pd.notna(c_row["users"]) else 0
+        control_act = round(float(c_row["activated_users"])) if pd.notna(c_row["activated_users"]) else 0
+        control_p = float(c_row["activation_rate"]) if pd.notna(c_row["activation_rate"]) else 0.0
 
-        treatment_n = int(t_row["users"])
-        treatment_act = round(float(t_row["activated_users"]))
-        treatment_p = float(t_row["activation_rate"])
+        treatment_n = int(t_row["users"]) if pd.notna(t_row["users"]) else 0
+        treatment_act = round(float(t_row["activated_users"])) if pd.notna(t_row["activated_users"]) else 0
+        treatment_p = float(t_row["activation_rate"]) if pd.notna(t_row["activation_rate"]) else 0.0
 
         total_n = control_n + treatment_n
+        if control_n <= 0 or treatment_n <= 0 or total_n < 10:
+            return self._build_empty_response(
+                experiment_name,
+                advisory=f"Insufficient sample size (control n={control_n}, treatment n={treatment_n}). At least 10 observations required for statistical inference.",
+            )
 
         # 95% Wald CI for single proportions: p +/- 1.96 * sqrt(p(1-p)/n)
         se_c = np.sqrt(control_p * (1.0 - control_p) / control_n) if control_n > 0 else 0.0
@@ -146,18 +154,22 @@ class ExperimentService:
         )
 
         # Pooled Two-Proportion Z-Test
-        successes = np.array([treatment_act, control_act])
-        observations = np.array([treatment_n, control_n])
-        try:
-            z_stat, p_val = proportions_ztest(successes, observations)
-            z_stat = float(z_stat)
-            p_val = float(p_val)
-        except Exception:
-            # Fallback exact calculation
-            p_pool = (treatment_act + control_act) / total_n if total_n > 0 else 0.0
-            se_pool = np.sqrt(p_pool * (1.0 - p_pool) * (1.0 / treatment_n + 1.0 / control_n))
-            z_stat = float((treatment_p - control_p) / se_pool) if se_pool > 0 else 0.0
-            p_val = float(2.0 * (1.0 - norm.cdf(abs(z_stat))))
+        if control_act == 0 and treatment_act == 0:
+            z_stat = 0.0
+            p_val = 1.0
+        else:
+            successes = np.array([treatment_act, control_act])
+            observations = np.array([treatment_n, control_n])
+            try:
+                z_stat, p_val = proportions_ztest(successes, observations)
+                z_stat = float(z_stat)
+                p_val = float(p_val)
+            except Exception:
+                # Fallback exact calculation
+                p_pool = (treatment_act + control_act) / total_n if total_n > 0 else 0.0
+                se_pool = np.sqrt(p_pool * (1.0 - p_pool) * (1.0 / treatment_n + 1.0 / control_n))
+                z_stat = float((treatment_p - control_p) / se_pool) if se_pool > 0 else 0.0
+                p_val = float(2.0 * (1.0 - norm.cdf(abs(z_stat))))
 
         significance = SignificanceTest(
             test_name="Two-Proportion Pooled Z-Test",
@@ -183,7 +195,7 @@ class ExperimentService:
             srm_interp = (
                 f"Severe Sample Ratio Mismatch detected (chi2={chi_sq_stat:.2f}, p={srm_p_value:.4e} < 0.01). "
                 f"Traffic allocation ({c_pct:.1f}% vs {t_pct:.1f}%) deviates significantly from 50/50. "
-                "Results may be biased by technical assignment issues or tracking loss."
+                "Results are biased by technical assignment failure or tracking loss; inference is invalid."
             )
         else:
             srm_interp = (
@@ -202,19 +214,36 @@ class ExperimentService:
             interpretation=srm_interp,
         )
 
-        if significance.is_significant:
-            p_str = "< 0.001" if p_val < 0.001 else f"= {p_val:.4f}"
+        p_str = "< 0.001" if p_val < 0.001 else f"= {p_val:.4f}"
+        if has_srm:
             advisory = (
-                f"Statistically significant lift (+{abs_lift_pp:.2f} pp absolute, +{rel_lift * 100:.1f}% relative) "
+                f"CRITICAL DIAGNOSTIC WARNING: Sample Ratio Mismatch (SRM) detected (p = {srm_p_value:.4e} < 0.01, chi2 = {chi_sq_stat:.2f}). "
+                "The sample allocation between control and treatment deviates significantly from the expected 50/50 split. "
+                "Regardless of the observed z-score or p-value, this experiment CANNOT be declared a winner or used for decision-making. "
+                "Investigate assignment bucketing, redirect latency, or user filtering defects before re-running."
+            )
+        elif significance.is_significant and abs_lift > 0:
+            advisory = (
+                f"Statistically significant positive lift (+{abs_lift_pp:.2f} pp absolute, +{rel_lift * 100:.1f}% relative) "
                 f"observed in 7-day workspace activation (z = {z_stat:.2f}, p {p_str}). "
                 f"The 95% confidence interval for true population lift [{ci_diff_low_pp:+.2f} pp, {ci_diff_high_pp:+.2f} pp] "
-                "strictly excludes zero. Leadership decision guidance: verify downstream retention beyond 7 days "
-                "and evaluate potential support load before 100% rollout."
+                "strictly excludes zero. Note: statistical significance establishes evidence against the null under this specific design, "
+                "but does not automatically guarantee overall business value or long-term retention. "
+                "Evaluate downstream metrics and operational capacity before 100% rollout."
+            )
+        elif significance.is_significant and abs_lift < 0:
+            advisory = (
+                f"Statistically significant negative regression ({abs_lift_pp:.2f} pp absolute, {rel_lift * 100:.1f}% relative) "
+                f"detected in 7-day workspace activation (z = {z_stat:.2f}, p {p_str}). "
+                f"The 95% confidence interval [{ci_diff_low_pp:+.2f} pp, {ci_diff_high_pp:+.2f} pp] strictly excludes zero in the negative direction. "
+                "Treatment variant performed significantly worse than control. Do not roll out treatment."
             )
         else:
             advisory = (
-                f"Observed difference (+{abs_lift_pp:.2f} pp) is not statistically significant at alpha = 0.05 "
-                f"(z = {z_stat:.2f}, p = {p_val:.4f}). Insufficient evidence to reject the null hypothesis."
+                f"Observed difference ({abs_lift_pp:+.2f} pp absolute) is not statistically significant at alpha = 0.05 "
+                f"(z = {z_stat:.2f}, p = {p_val:.4f}). The 95% confidence interval [{ci_diff_low_pp:+.2f} pp, {ci_diff_high_pp:+.2f} pp] "
+                "spans across zero. Insufficient evidence to reject the null hypothesis; observed variation is consistent with random chance. "
+                "Do not launch treatment on assumption of positive performance."
             )
 
         return ExperimentAnalysisResponse(
@@ -231,14 +260,18 @@ class ExperimentService:
             decision_advisory=advisory,
         )
 
-    def _build_empty_response(self, experiment_name: str) -> ExperimentAnalysisResponse:
+    def _build_empty_response(
+        self,
+        experiment_name: str,
+        advisory: str = "Workspace is empty or has no active experiment data.",
+    ) -> ExperimentAnalysisResponse:
         """Return zeroed response for isolated unpopulated tenant workspaces."""
         return ExperimentAnalysisResponse(
             tenant_id=self.tenant_id,
             organization_name=self.org_name,
             experiment_name=experiment_name,
             hypothesis="No experiment data provisioned for this workspace.",
-            primary_metric="None",
+            primary_metric="7-day Workspace Activation Rate",
             observation_window_days=7,
             variants=[],
             lift=LiftMetrics(
@@ -265,5 +298,5 @@ class ExperimentService:
                 has_srm=False,
                 interpretation="No experiment traffic recorded for this tenant.",
             ),
-            decision_advisory="Workspace is empty or has no active experiment data.",
+            decision_advisory=advisory,
         )

@@ -92,23 +92,23 @@ React + TypeScript Dashboard (frontend/src/)
 
 All analytical endpoints enforce **server-side tenant isolation** via JWT bearer tokens. Each request is scoped to the authenticated tenant's data domain.
 
-| Endpoint | Method | Description |
-| :--- | :--- | :--- |
-| `/api/v1/auth/token` | POST | Obtain tenant-scoped JWT access token |
-| `/api/v1/auth/demo-token` | GET | Quick demo token for local development |
-| `/api/v1/funnel` | GET | Five-stage conversion funnel with channel benchmarks |
-| `/api/v1/cohorts` | GET | Weekly cohort retention matrix and decay analysis |
-| `/api/v1/experiments` | GET | A/B test inference with CIs, SRM, and effect sizes |
-| `/api/v1/churn` | GET | Churn risk scoring and at-risk account identification |
-| `/health` | GET | Service health check |
+| Endpoint | Method | Description | Supported Parameters |
+| :--- | :--- | :--- | :--- |
+| `/api/v1/auth/token` | POST | Obtain tenant-scoped JWT access token | Form: `username`, `password`, `tenant_id` |
+| `/api/v1/auth/demo-token` | GET | Quick demo token for local development | `tenant_id` |
+| `/api/v1/funnel` | GET | Five-stage conversion funnel with channel benchmarks | `acquisition_channel`, `start_date`, `end_date` |
+| `/api/v1/cohorts` | GET | Weekly cohort retention matrix with elapsed-period masking | `max_weeks`, `num_cohorts`, `min_cohort_size`, `start_date`, `end_date` |
+| `/api/v1/experiments` | GET | List registered experiments for authenticated tenant | None (tenant-scoped) |
+| `/api/v1/experiments/{name}` | GET | Two-proportion z-test, Wald 95% CIs, and $\chi^2$ SRM diagnostic | `experiment_name` (path parameter) |
+| `/api/v1/churn` | GET | Churn risk scoring and at-risk account identification | `risk_threshold`, `limit` |
+| `/health` | GET | Service health check and tenancy mode | None |
 
-### React Dashboard Views
+### React Dashboard Workspaces
 
-- **Funnel Visualizer:** Five-step conversion funnel with stage efficiency table, channel benchmark matrix, and KPI strip.
-- **Cohort Retention:** Weekly retention heatmap with configurable cohort parameters.
-- **Experimentation Lab:** A/B test results with confidence intervals, effect size visualization, and SRM diagnostics.
-- **Filter Bar:** Acquisition channel and date range filtering with reactive data updates.
-- **Navigation:** Tab-based navigation with top bar branding.
+- **Funnel Intelligence Workspace:** Five-step product conversion funnel (`signup` → `workspace` → `invite` → `project` → `paid`) with stage efficiency metrics, channel benchmark matrix, drop-off tracking, and KPI strip.
+- **Cohort Retention Intelligence:** Weekly retention matrix heatmap with elapsed-period maturity guards (incomplete windows represented as unobserved `—` / `N/A`, not false zeros), configurable horizons (4, 8, 12 weeks), cohort size thresholds, date filtering, and milestone averages (W1, W4, W8, W12).
+- **Experimentation Lab:** Statistical hypothesis evaluation of variant performance with control/treatment comparisons, absolute and relative lift, Wald unpooled 95% confidence intervals, two-proportion pooled z-tests, and Sample Ratio Mismatch ($\chi^2$ SRM, $p < 0.01$) diagnostics with cautious decision advisories.
+- **Tenant Isolation:** Client-side workspace switcher verifying server-side tenant isolation where unpopulated or separate tenant boundaries return clean empty-state workspaces without cross-tenant data leakage.
 
 ---
 
@@ -222,9 +222,17 @@ python -m python.src.run_sql_models
 
 ### 3. Run Test Suite & Linting
 
+**Backend Tests & Linting (119 passing tests):**
 ```powershell
 python -m pytest
 ruff check .
+```
+
+**Frontend Tests & Type Check (11 passing unit tests):**
+```powershell
+cd frontend
+npm test
+npm run build
 ```
 
 ### 4. Launch the Application

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
@@ -9,6 +10,7 @@ from backend.app.auth.models import AuthenticatedUser, UserRole
 from backend.app.auth.security import create_access_token
 from backend.app.config import settings
 from backend.app.main import app
+from backend.app.services.experiment_service import ExperimentService
 
 client = TestClient(app)
 
@@ -118,3 +120,116 @@ def test_tenant_isolation_experiments(acme_token: str):
     assert data["tenant_id"] == "org_acme_corp"
     assert len(data["variants"]) == 0
     assert data["lift"]["absolute_lift"] == 0.0
+
+
+def test_experiment_zero_conversion_rate(monkeypatch, tmp_path):
+    """Verify zero conversions in both variants do not raise ZeroDivisionError and yield defined relative lift."""
+    df_zero = pd.DataFrame([
+        {"experiment_name": "zero_exp", "variant": "control", "users": 1000, "activated_users": 0, "activation_rate": 0.0},
+        {"experiment_name": "zero_exp", "variant": "treatment", "users": 1000, "activated_users": 0, "activation_rate": 0.0},
+    ])
+    parquet_path = tmp_path / "mart_experiment_results.parquet"
+    df_zero.to_parquet(parquet_path)
+
+    svc = ExperimentService(tenant_id="test_tenant", org_name="Test Org")
+    monkeypatch.setattr(svc, "tenant_data_dir", tmp_path)
+
+    res = svc.get_experiment_analysis("zero_exp")
+    assert res.lift.relative_lift == 0.0
+    assert res.lift.absolute_lift == 0.0
+    assert res.significance.z_statistic == 0.0
+    assert res.significance.p_value == 1.0
+    assert res.significance.is_significant is False
+
+
+def test_experiment_missing_group_handling(monkeypatch, tmp_path):
+    """Verify missing treatment group is gracefully handled with advisory."""
+    df_missing = pd.DataFrame([
+        {"experiment_name": "missing_exp", "variant": "control", "users": 1000, "activated_users": 500, "activation_rate": 0.5},
+    ])
+    parquet_path = tmp_path / "mart_experiment_results.parquet"
+    df_missing.to_parquet(parquet_path)
+
+    svc = ExperimentService(tenant_id="test_tenant", org_name="Test Org")
+    monkeypatch.setattr(svc, "tenant_data_dir", tmp_path)
+
+    res = svc.get_experiment_analysis("missing_exp")
+    assert len(res.variants) == 0
+    assert "missing control or treatment variant" in res.decision_advisory
+
+
+def test_experiment_insufficient_sample_size(monkeypatch, tmp_path):
+    """Verify small sample size (< 10 total) is rejected gracefully."""
+    df_small = pd.DataFrame([
+        {"experiment_name": "small_exp", "variant": "control", "users": 3, "activated_users": 1, "activation_rate": 0.3333},
+        {"experiment_name": "small_exp", "variant": "treatment", "users": 4, "activated_users": 2, "activation_rate": 0.5},
+    ])
+    parquet_path = tmp_path / "mart_experiment_results.parquet"
+    df_small.to_parquet(parquet_path)
+
+    svc = ExperimentService(tenant_id="test_tenant", org_name="Test Org")
+    monkeypatch.setattr(svc, "tenant_data_dir", tmp_path)
+
+    res = svc.get_experiment_analysis("small_exp")
+    assert len(res.variants) == 0
+    assert "Insufficient sample size" in res.decision_advisory
+
+
+def test_experiment_srm_diagnostic_warning(monkeypatch, tmp_path):
+    """Verify severe sample ratio mismatch triggers SRM warning and prevents claiming a winner."""
+    # 8,000 control vs 2,000 treatment -> extreme SRM
+    df_srm = pd.DataFrame([
+        {"experiment_name": "srm_exp", "variant": "control", "users": 8000, "activated_users": 4000, "activation_rate": 0.50},
+        {"experiment_name": "srm_exp", "variant": "treatment", "users": 2000, "activated_users": 1400, "activation_rate": 0.70},
+    ])
+    parquet_path = tmp_path / "mart_experiment_results.parquet"
+    df_srm.to_parquet(parquet_path)
+
+    svc = ExperimentService(tenant_id="test_tenant", org_name="Test Org")
+    monkeypatch.setattr(svc, "tenant_data_dir", tmp_path)
+
+    res = svc.get_experiment_analysis("srm_exp")
+    assert res.srm.has_srm is True
+    assert res.srm.p_value < 0.001
+    assert "CRITICAL DIAGNOSTIC WARNING: Sample Ratio Mismatch (SRM) detected" in res.decision_advisory
+    assert "CANNOT be declared a winner" in res.decision_advisory
+
+
+def test_experiment_inconclusive_result(monkeypatch, tmp_path):
+    """Verify non-significant result retains null hypothesis cautiously."""
+    # Identical rates -> p-value near 1.0
+    df_inconc = pd.DataFrame([
+        {"experiment_name": "inconc_exp", "variant": "control", "users": 500, "activated_users": 250, "activation_rate": 0.50},
+        {"experiment_name": "inconc_exp", "variant": "treatment", "users": 500, "activated_users": 252, "activation_rate": 0.504},
+    ])
+    parquet_path = tmp_path / "mart_experiment_results.parquet"
+    df_inconc.to_parquet(parquet_path)
+
+    svc = ExperimentService(tenant_id="test_tenant", org_name="Test Org")
+    monkeypatch.setattr(svc, "tenant_data_dir", tmp_path)
+
+    res = svc.get_experiment_analysis("inconc_exp")
+    assert res.significance.is_significant is False
+    assert res.significance.p_value > 0.05
+    assert "not statistically significant" in res.decision_advisory
+    assert "Insufficient evidence to reject the null hypothesis" in res.decision_advisory
+
+
+def test_experiment_negative_regression(monkeypatch, tmp_path):
+    """Verify significant negative effect is clearly identified as a regression, not a winner."""
+    # Treatment performs significantly worse than control
+    df_neg = pd.DataFrame([
+        {"experiment_name": "neg_exp", "variant": "control", "users": 2000, "activated_users": 1400, "activation_rate": 0.70},
+        {"experiment_name": "neg_exp", "variant": "treatment", "users": 2000, "activated_users": 1000, "activation_rate": 0.50},
+    ])
+    parquet_path = tmp_path / "mart_experiment_results.parquet"
+    df_neg.to_parquet(parquet_path)
+
+    svc = ExperimentService(tenant_id="test_tenant", org_name="Test Org")
+    monkeypatch.setattr(svc, "tenant_data_dir", tmp_path)
+
+    res = svc.get_experiment_analysis("neg_exp")
+    assert res.significance.is_significant is True
+    assert res.lift.absolute_lift < 0
+    assert "Statistically significant negative regression" in res.decision_advisory
+    assert "Treatment variant performed significantly worse" in res.decision_advisory

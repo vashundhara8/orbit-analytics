@@ -68,3 +68,82 @@ test('Experiment relative lift calculation', () => {
   assert.ok(Math.abs(absLift - 0.0326) < 0.0001);
   assert.ok(Math.abs(relLiftPct - 4.846) < 0.05);
 });
+
+test('Cohort retention query parameters build with start and end dates', () => {
+  const maxWeeks = 8;
+  const numCohorts = 10;
+  const minCohortSize = 300;
+  const startDate = '2024-02-01';
+  const endDate = '2024-05-31';
+
+  const params = new URLSearchParams({
+    max_weeks: maxWeeks.toString(),
+    num_cohorts: numCohorts.toString(),
+    min_cohort_size: minCohortSize.toString(),
+  });
+  if (startDate) params.append('start_date', startDate);
+  if (endDate) params.append('end_date', endDate);
+
+  assert.equal(
+    params.toString(),
+    'max_weeks=8&num_cohorts=10&min_cohort_size=300&start_date=2024-02-01&end_date=2024-05-31'
+  );
+});
+
+test('Cohort cell retention rate formatting handles unobserved vs genuine zero', () => {
+  const formatCell = (rate) => {
+    if (rate === null || rate === undefined) return '—';
+    return `${(rate * 100).toFixed(0)}%`;
+  };
+
+  assert.equal(formatCell(null), '—');
+  assert.equal(formatCell(undefined), '—');
+  assert.equal(formatCell(0.0), '0%');
+  assert.equal(formatCell(0.6727), '67%');
+  assert.equal(formatCell(1.0), '100%');
+});
+
+test('Experiment relative lift handles zero control baseline safely', () => {
+  const calcRelLift = (treatmentRate, controlRate) => {
+    const absLift = treatmentRate - controlRate;
+    return controlRate > 0 ? (absLift / controlRate) * 100 : 0.0;
+  };
+
+  assert.equal(calcRelLift(0.15, 0.0), 0.0);
+  assert.equal(calcRelLift(0.0, 0.0), 0.0);
+  assert.ok(Math.abs(calcRelLift(0.50, 0.40) - 25.0) < 0.01);
+});
+
+test('Experiment SRM diagnostic status detection', () => {
+  const checkSrm = (pVal) => pVal < 0.01;
+
+  assert.equal(checkSrm(0.00004), true); // Severe SRM
+  assert.equal(checkSrm(0.0099), true);  // Just below threshold
+  assert.equal(checkSrm(0.0101), false); // Passed
+  assert.equal(checkSrm(0.179), false);  // Standard passed SRM
+});
+
+test('Advisory banner classification prioritizes SRM over statistical significance', () => {
+  const classifyAdvisory = (hasSrm, isSignificant, absLift) => {
+    if (hasSrm) return 'srm_warning';
+    if (isSignificant && absLift > 0) return 'significant_lift';
+    if (isSignificant && absLift < 0) return 'negative_regression';
+    return 'inconclusive';
+  };
+
+  // Even if statistically significant, SRM MUST trigger srm_warning
+  assert.equal(classifyAdvisory(true, true, 0.05), 'srm_warning');
+  assert.equal(classifyAdvisory(false, true, 0.0326), 'significant_lift');
+  assert.equal(classifyAdvisory(false, true, -0.04), 'negative_regression');
+  assert.equal(classifyAdvisory(false, false, 0.002), 'inconclusive');
+});
+
+test('Isolated empty workspace detection for cohorts and experiments', () => {
+  const isCohortEmpty = (cohorts) => cohorts.length === 0;
+  const isExpEmpty = (variants) => variants.length === 0;
+
+  assert.equal(isCohortEmpty([]), true);
+  assert.equal(isCohortEmpty([{ cohort_week: '2024-01-01' }]), false);
+  assert.equal(isExpEmpty([]), true);
+  assert.equal(isExpEmpty([{ variant: 'control' }]), false);
+});
