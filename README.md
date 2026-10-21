@@ -100,6 +100,7 @@ All analytical endpoints enforce **server-side tenant isolation** via JWT bearer
 | `/api/v1/cohorts` | GET | Weekly cohort retention matrix with elapsed-period masking | `max_weeks`, `num_cohorts`, `min_cohort_size`, `start_date`, `end_date` |
 | `/api/v1/experiments` | GET | List registered experiments for authenticated tenant | None (tenant-scoped) |
 | `/api/v1/experiments/{name}` | GET | Two-proportion z-test, Wald 95% CIs, and $\chi^2$ SRM diagnostic | `experiment_name` (path parameter) |
+| `/api/v1/experiments/{name}/revenue` | GET | Downstream 35d paid conversion, realized MRR, Welch t-test, post-conversion churn | `experiment_name` (path parameter) |
 | `/api/v1/churn` | GET | Churn risk scoring and at-risk account identification | `risk_threshold`, `limit` |
 | `/health` | GET | Service health check and tenancy mode | None |
 
@@ -107,7 +108,9 @@ All analytical endpoints enforce **server-side tenant isolation** via JWT bearer
 
 - **Funnel Intelligence Workspace:** Five-step product conversion funnel (`signup` → `workspace` → `invite` → `project` → `paid`) with stage efficiency metrics, channel benchmark matrix, drop-off tracking, and KPI strip.
 - **Cohort Retention Intelligence:** Weekly retention matrix heatmap with elapsed-period maturity guards (incomplete windows represented as unobserved `—` / `N/A`, not false zeros), configurable horizons (4, 8, 12 weeks), cohort size thresholds, date filtering, and milestone averages (W1, W4, W8, W12).
-- **Experimentation Lab:** Statistical hypothesis evaluation of variant performance with control/treatment comparisons, absolute and relative lift, Wald unpooled 95% confidence intervals, two-proportion pooled z-tests, and Sample Ratio Mismatch ($\chi^2$ SRM, $p < 0.01$) diagnostics with cautious decision advisories.
+- **Experimentation Lab (Dual-Lens Workspace):**
+  - **Activation Intelligence (Early Proxy):** Evaluates 7-day workspace creation with two-proportion pooled z-tests, Wald unpooled 95% confidence intervals, and Sample Ratio Mismatch ($\chi^2$ SRM, $p < 0.01$) diagnostics.
+  - **Downstream Revenue & Billing Intelligence (Commercial Outcome):** Evaluates 35-day Intention-To-Treat (ITT) paid conversions, realized snapshot MRR, Welch's two-sample t-test for ARPU, post-conversion churn rates, secondary trial-eligible subpopulation breakdowns, and audited causality disclosure highlighting proxy metric decoupling.
 - **Tenant Isolation:** Client-side workspace switcher verifying server-side tenant isolation where unpopulated or separate tenant boundaries return clean empty-state workspaces without cross-tenant data leakage.
 
 ---
@@ -120,6 +123,10 @@ All analytical endpoints enforce **server-side tenant isolation** via JWT bearer
 | :--- | :--- |
 | **7-Day Activation Rate** | Accounts that created a workspace within 7 days of signup divided by total signups. |
 | **Trial-to-Paid Conversion** | Users who converted to a paid subscription divided by total signups. |
+| **35-Day Paid Conversion (ITT)** | Experiment participants with `paid_start_date` within 35 days of assignment divided by total assigned users. |
+| **ARPU (Intention-To-Treat)** | Total snapshot MRR divided by total assigned users in the variant ($\text{MRR}_{\text{total}} / N_{\text{assigned}}$). |
+| **ARPPU** | Average revenue per paying customer ($\text{MRR}_{\text{total}} / N_{\text{paid}}$). |
+| **Post-Conversion Churn Rate** | Converted users with a `cancel_date` divided by total paid conversions in the variant. |
 | **Day 30 (D30) Retention** | Active accounts 30 days post-signup divided by cohort signup volume (mature cohorts only). |
 | **Churn Rate** | Canceled subscriptions divided by signup volume in the active window. |
 | **Ending MRR** | Sum of monthly recurring revenue from active paid subscriptions at the end of the period. |
@@ -131,7 +138,8 @@ All analytical endpoints enforce **server-side tenant isolation** via JWT bearer
 - **Parametric Synthetic Distributions:** Data is generated synthetically to model SaaS behavioral dynamics; it does not contain macro anomalies, sudden market shifts, or external shocks.
 - **Subscription Model Simplicity:** The underlying subscription generator models three static tiers ($29 Starter, $99 Growth, $299 Enterprise) with flat billing. It does not simulate mid-cycle tier upgrades, seat expansions, or downgrades. Advanced SaaS metrics requiring expansion revenue (such as Net Revenue Retention / NRR, Quick Ratio, or MRR expansion waterfalls) are intentionally omitted to avoid fabricating unsupported metrics.
 - **Cohort Maturity Window:** Signup data spans up to June 2025 with events continuing through December 2025. Cohorts near the end of the signup window have limited elapsed observation time. These cells are appropriately represented as unobservable (`N/A`) rather than zero retention.
-- **Experiment Scope:** The A/B experiment isolates Day 7 workspace activation. Long-term lifetime value (LTV) and 90-day retention decay by experiment variant are unobservable in the isolated experiment mart.
+- **Experiment Scope & Funnel Decoupling:** In experiment `onboarding_v2`, treatment generated a statistically significant +3.26 pp lift in 7-day workspace creation ($p < 0.001$). However, linking assignments to billing records reveals that downstream 35-day paid conversion (+0.02 pp, $p = 0.9506$) and ARPU (-$0.015, $p = 0.8737$) remained statistically indistinguishable from control. Product and growth teams are cautioned against assuming early activation gains automatically compound into ARR without addressing checkout friction and ongoing value delivery.
+
 
 ---
 

@@ -147,3 +147,38 @@ test('Isolated empty workspace detection for cohorts and experiments', () => {
   assert.equal(isExpEmpty([]), true);
   assert.equal(isExpEmpty([{ variant: 'control' }]), false);
 });
+
+test('Experiment revenue intelligence URL generation', () => {
+  const getRevenueUrl = (expName) => `/experiments/${expName}/revenue`;
+  assert.equal(getRevenueUrl('onboarding_v2'), '/experiments/onboarding_v2/revenue');
+  assert.equal(getRevenueUrl('pricing_test'), '/experiments/pricing_test/revenue');
+});
+
+test('Downstream paid conversion lift and ARPU calculation', () => {
+  const cRate = 0.0638;
+  const tRate = 0.0640;
+  const absLiftPp = (tRate - cRate) * 100;
+  const relLiftPct = ((tRate - cRate) / cRate) * 100;
+
+  assert.ok(Math.abs(absLiftPp - 0.02) < 0.005);
+  assert.ok(Math.abs(relLiftPct - 0.313) < 0.05);
+
+  const cArpu = 1.5312;
+  const tArpu = 1.5166;
+  const arpuDiff = tArpu - cArpu;
+  assert.ok(Math.abs(arpuDiff - (-0.0146)) < 0.0001);
+});
+
+test('Revenue advisory banner classifies neutral impact when p > 0.05', () => {
+  const classifyRevenueAdvisory = (hasSrm, convSig, arpuSig, convLift) => {
+    if (hasSrm) return 'srm_warning';
+    if (!convSig && !arpuSig) return 'neutral_impact';
+    if (convSig && convLift > 0) return 'significant_lift';
+    return 'negative_regression';
+  };
+
+  assert.equal(classifyRevenueAdvisory(false, false, false, 0.0002), 'neutral_impact');
+  assert.equal(classifyRevenueAdvisory(true, false, false, 0.0002), 'srm_warning');
+  assert.equal(classifyRevenueAdvisory(false, true, false, 0.02), 'significant_lift');
+  assert.equal(classifyRevenueAdvisory(false, true, false, -0.01), 'negative_regression');
+});

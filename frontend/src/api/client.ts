@@ -1,6 +1,7 @@
 import {
   CohortRetentionResponse,
   ExperimentAnalysisResponse,
+  ExperimentRevenueAnalysisResponse,
   ExperimentSummaryItem,
   FunnelAnalysisResponse,
   HealthResponse,
@@ -131,6 +132,12 @@ class ApiClient {
     experimentName = 'onboarding_v2'
   ): Promise<ExperimentAnalysisResponse> {
     return this.request<ExperimentAnalysisResponse>(`/experiments/${experimentName}`);
+  }
+
+  async getExperimentRevenueAnalysis(
+    experimentName = 'onboarding_v2'
+  ): Promise<ExperimentRevenueAnalysisResponse> {
+    return this.request<ExperimentRevenueAnalysisResponse>(`/experiments/${experimentName}/revenue`);
   }
 }
 
