@@ -11,6 +11,7 @@ import { StageEfficiencyTable } from './components/StageEfficiencyTable';
 import { ChannelBenchmarkMatrix } from './components/ChannelBenchmarkMatrix';
 import { CohortRetentionView } from './components/CohortRetentionView';
 import { ExperimentationView } from './components/ExperimentationView';
+import { ChurnIntelligenceView } from './components/ChurnIntelligenceView';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('funnel');
@@ -192,6 +193,19 @@ export const App: React.FC = () => {
           </header>
 
           <ExperimentationView tenantId={currentTenantId} />
+        </>
+      )}
+
+      {activeTab === 'churn' && (
+        <>
+          <header className="page-header">
+            <h1 className="page-title">Churn Intelligence Workspace</h1>
+            <p className="page-subtitle">
+              Point-in-time Day-30 churn evaluation with transparent dummy prior baseline comparison, audited synthetic provenance, and exploratory review triage.
+            </p>
+          </header>
+
+          <ChurnIntelligenceView tenantId={currentTenantId} />
         </>
       )}
     </div>

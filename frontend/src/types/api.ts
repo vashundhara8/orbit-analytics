@@ -229,3 +229,82 @@ export interface ExperimentRevenueAnalysisResponse {
   decision_advisory: string;
   causality_disclosure: string;
 }
+
+// ── Point-in-Time Churn Intelligence Types ──────────────────────────────────
+
+export interface FeatureCoefficientItem {
+  feature_name: string;
+  coefficient: number;
+  odds_ratio: number;
+  impact_direction: string;
+  description: string;
+}
+
+export interface ModelPerformanceMetrics {
+  roc_auc: number;
+  pr_auc: number;
+  brier_score: number;
+  baseline_prevalence: number;
+  train_samples: number;
+  test_samples: number;
+  baseline_model_name: string;
+  baseline_roc_auc: number;
+  baseline_pr_auc: number;
+  baseline_brier_score: number;
+  evaluation_strategy: string;
+  calibration_assessment: string;
+}
+
+export interface PredictionTaskDefinition {
+  scoring_population: string;
+  observation_anchor: string;
+  feature_window_days: number;
+  prediction_window_days: number;
+  leakage_prevention_rule: string;
+}
+
+export interface RiskTierBreakdown {
+  low_count: number;
+  low_pct: number;
+  medium_count: number;
+  medium_pct: number;
+  high_count: number;
+  high_pct: number;
+  total_scored: number;
+  mean_probability: number;
+  high_threshold: number;
+  medium_threshold: number;
+}
+
+export interface AtRiskAccount {
+  user_id: string;
+  churn_probability: number;
+  risk_tier: string;
+  days_since_last_event_at_cutoff: number;
+  events_in_30d: number;
+  distinct_events_in_30d: number;
+  feature_used_count: number;
+  plan_type: string;
+  company_size: string;
+  industry: string;
+  recommended_action: string;
+  prediction_cutoff: string;
+  exploratory_review_suggestion: string;
+}
+
+export interface ChurnSummaryResponse {
+  tenant_id: string;
+  organization_name: string;
+  task_definition: PredictionTaskDefinition;
+  performance: ModelPerformanceMetrics;
+  coefficients: FeatureCoefficientItem[];
+  risk_distribution: RiskTierBreakdown;
+  data_provenance_notes: string;
+}
+
+export interface ChurnAccountsResponse {
+  tenant_id: string;
+  organization_name: string;
+  total_matching: number;
+  accounts: AtRiskAccount[];
+}

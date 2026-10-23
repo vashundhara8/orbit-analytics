@@ -1,7 +1,7 @@
 import React from 'react';
-import { Filter, Users, FlaskConical } from 'lucide-react';
+import { Filter, Users, FlaskConical, ShieldAlert } from 'lucide-react';
 
-export type WorkspaceTab = 'funnel' | 'cohorts' | 'experiments';
+export type WorkspaceTab = 'funnel' | 'cohorts' | 'experiments' | 'churn';
 
 interface NavigationTabsProps {
   activeTab: WorkspaceTab;
@@ -25,6 +25,12 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, onTab
       label: 'Experimentation Lab',
       icon: <FlaskConical size={16} />,
       badge: 'Z-Test & SRM',
+    },
+    {
+      id: 'churn',
+      label: 'Churn Intelligence',
+      icon: <ShieldAlert size={16} />,
+      badge: 'Audited Model',
     },
   ];
 

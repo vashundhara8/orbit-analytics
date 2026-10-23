@@ -182,3 +182,62 @@ test('Revenue advisory banner classifies neutral impact when p > 0.05', () => {
   assert.equal(classifyRevenueAdvisory(false, true, false, 0.02), 'significant_lift');
   assert.equal(classifyRevenueAdvisory(false, true, false, -0.01), 'negative_regression');
 });
+
+test('Churn accounts query parameters build with valid filters', () => {
+  const buildChurnQuery = (params) => {
+    const q = new URLSearchParams();
+    if (params?.risk_tier && params.risk_tier !== 'all') {
+      q.append('risk_tier', params.risk_tier);
+    }
+    if (params?.industry && params.industry !== 'all') {
+      q.append('industry', params.industry);
+    }
+    if (params?.plan_type && params.plan_type !== 'all') {
+      q.append('plan_type', params.plan_type);
+    }
+    if (params?.limit) {
+      q.append('limit', params.limit.toString());
+    }
+    return q.toString() ? `?${q.toString()}` : '';
+  };
+
+  assert.equal(buildChurnQuery({ risk_tier: 'all', industry: 'all', plan_type: 'all' }), '');
+  assert.equal(
+    buildChurnQuery({ risk_tier: 'high', industry: 'SaaS', plan_type: 'pro', limit: 25 }),
+    '?risk_tier=high&industry=SaaS&plan_type=pro&limit=25'
+  );
+  assert.equal(buildChurnQuery({ risk_tier: 'medium' }), '?risk_tier=medium');
+});
+
+test('Churn baseline evaluation discrimination and calibration comparison', () => {
+  const evaluatePredictivePower = (rocAuc, baselineRocAuc) => {
+    const liftOverBaseline = rocAuc - baselineRocAuc;
+    if (Math.abs(liftOverBaseline) < 0.03) {
+      return 'baseline_discrimination';
+    }
+    if (liftOverBaseline >= 0.15) {
+      return 'strong_discrimination';
+    }
+    return 'modest_discrimination';
+  };
+
+  assert.equal(evaluatePredictivePower(0.5030, 0.5000), 'baseline_discrimination');
+  assert.equal(evaluatePredictivePower(0.4833, 0.5000), 'baseline_discrimination');
+  assert.equal(evaluatePredictivePower(0.7200, 0.5000), 'strong_discrimination');
+});
+
+test('Active Snapshot MRR calculation and non-cumulative semantics', () => {
+  const activeSubscribers = 533;
+  const churnedSubscribers = 111;
+  const planFee = 29.0;
+
+  // Active snapshot MRR reflects currently active accounts only
+  const activeSnapshotMrr = activeSubscribers * planFee;
+  assert.equal(activeSnapshotMrr, 15457.0);
+
+  // Total paid conversions includes churned subscribers, but they contribute $0 to snapshot MRR
+  const totalPaidConversions = activeSubscribers + churnedSubscribers;
+  assert.equal(totalPaidConversions, 644);
+  const arppu = activeSnapshotMrr / totalPaidConversions;
+  assert.equal(Math.round(arppu * 100) / 100, 24.00);
+});

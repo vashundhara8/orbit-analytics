@@ -20,6 +20,12 @@ class ModelPerformanceMetrics(BaseModel):
     baseline_prevalence: float = Field(..., description="Empirical 60-day churn base rate")
     train_samples: int
     test_samples: int
+    baseline_model_name: str = Field("Prior Dummy Baseline", description="Name of reference baseline model")
+    baseline_roc_auc: float = Field(0.50, description="Out-of-sample ROC-AUC for DummyClassifier(strategy='prior')")
+    baseline_pr_auc: float = Field(..., description="Out-of-sample PR-AUC for DummyClassifier(strategy='prior')")
+    baseline_brier_score: float = Field(..., description="Out-of-sample Brier score for DummyClassifier(strategy='prior')")
+    evaluation_strategy: str = Field(..., description="Validation methodology and time-aware evaluation notes")
+    calibration_assessment: str = Field(..., description="Empirical probability calibration assessment")
 
 
 class PredictionTaskDefinition(BaseModel):
@@ -55,6 +61,8 @@ class AtRiskAccount(BaseModel):
     company_size: str
     industry: str
     recommended_action: str
+    prediction_cutoff: str = Field(default="", description="Point-in-time observation cutoff timestamp")
+    exploratory_review_suggestion: str = Field(default="", description="Safe exploratory investigation suggestion")
 
 
 class ChurnSummaryResponse(BaseModel):

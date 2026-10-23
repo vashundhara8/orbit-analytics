@@ -1,5 +1,7 @@
 import {
   CohortRetentionResponse,
+  ChurnAccountsResponse,
+  ChurnSummaryResponse,
   ExperimentAnalysisResponse,
   ExperimentRevenueAnalysisResponse,
   ExperimentSummaryItem,
@@ -138,6 +140,33 @@ class ApiClient {
     experimentName = 'onboarding_v2'
   ): Promise<ExperimentRevenueAnalysisResponse> {
     return this.request<ExperimentRevenueAnalysisResponse>(`/experiments/${experimentName}/revenue`);
+  }
+
+  async getChurnSummary(): Promise<ChurnSummaryResponse> {
+    return this.request<ChurnSummaryResponse>('/churn/summary');
+  }
+
+  async getChurnAccounts(params?: {
+    risk_tier?: string;
+    industry?: string;
+    plan_type?: string;
+    limit?: number;
+  }): Promise<ChurnAccountsResponse> {
+    const q = new URLSearchParams();
+    if (params?.risk_tier && params.risk_tier !== 'all') {
+      q.append('risk_tier', params.risk_tier);
+    }
+    if (params?.industry && params.industry !== 'all') {
+      q.append('industry', params.industry);
+    }
+    if (params?.plan_type && params.plan_type !== 'all') {
+      q.append('plan_type', params.plan_type);
+    }
+    if (params?.limit) {
+      q.append('limit', params.limit.toString());
+    }
+    const query = q.toString() ? `?${q.toString()}` : '';
+    return this.request<ChurnAccountsResponse>(`/churn/accounts${query}`);
   }
 }
 
