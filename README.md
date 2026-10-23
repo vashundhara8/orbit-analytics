@@ -100,8 +100,9 @@ All analytical endpoints enforce **server-side tenant isolation** via JWT bearer
 | `/api/v1/cohorts` | GET | Weekly cohort retention matrix with elapsed-period masking | `max_weeks`, `num_cohorts`, `min_cohort_size`, `start_date`, `end_date` |
 | `/api/v1/experiments` | GET | List registered experiments for authenticated tenant | None (tenant-scoped) |
 | `/api/v1/experiments/{name}` | GET | Two-proportion z-test, Wald 95% CIs, and $\chi^2$ SRM diagnostic | `experiment_name` (path parameter) |
-| `/api/v1/experiments/{name}/revenue` | GET | Downstream 35d paid conversion, realized MRR, Welch t-test, post-conversion churn | `experiment_name` (path parameter) |
-| `/api/v1/churn` | GET | Churn risk scoring and at-risk account identification | `risk_threshold`, `limit` |
+| `/api/v1/experiments/{name}/revenue` | GET | Downstream 35d paid conversion, Active Snapshot MRR from Experiment Cohort, Welch t-test, post-conversion churn | `experiment_name` (path parameter) |
+| `/api/v1/churn/summary` | GET | Point-in-time Day-30 churn model performance vs Dummy prior baseline | None (tenant-scoped) |
+| `/api/v1/churn/accounts` | GET | Ranked account-level churn exploratory review list | `risk_tier`, `industry`, `plan_type`, `limit` |
 | `/health` | GET | Service health check and tenancy mode | None |
 
 ### React Dashboard Workspaces
@@ -110,7 +111,8 @@ All analytical endpoints enforce **server-side tenant isolation** via JWT bearer
 - **Cohort Retention Intelligence:** Weekly retention matrix heatmap with elapsed-period maturity guards (incomplete windows represented as unobserved `—` / `N/A`, not false zeros), configurable horizons (4, 8, 12 weeks), cohort size thresholds, date filtering, and milestone averages (W1, W4, W8, W12).
 - **Experimentation Lab (Dual-Lens Workspace):**
   - **Activation Intelligence (Early Proxy):** Evaluates 7-day workspace creation with two-proportion pooled z-tests, Wald unpooled 95% confidence intervals, and Sample Ratio Mismatch ($\chi^2$ SRM, $p < 0.01$) diagnostics.
-  - **Downstream Revenue & Billing Intelligence (Commercial Outcome):** Evaluates 35-day Intention-To-Treat (ITT) paid conversions, realized snapshot MRR, Welch's two-sample t-test for ARPU, post-conversion churn rates, secondary trial-eligible subpopulation breakdowns, and audited causality disclosure highlighting proxy metric decoupling.
+  - **Downstream Revenue & Billing Intelligence (Commercial Outcome):** Evaluates 35-day Intention-To-Treat (ITT) paid conversions, Active Snapshot MRR from Experiment Cohort (active recurring revenue at end-of-simulation snapshot, not cumulative cash collected), Welch's two-sample t-test for ARPU, post-conversion churn rates, secondary trial-eligible subpopulation breakdowns, and audited causality disclosure highlighting proxy metric decoupling.
+- **Churn Intelligence Workspace:** Transparent point-in-time Day-30 churn analysis with explicit dummy prior baseline comparison, audited synthetic provenance disclosure, exploratory risk tiers, non-causal feature interpretations, and customer success exploratory review table.
 - **Tenant Isolation:** Client-side workspace switcher verifying server-side tenant isolation where unpopulated or separate tenant boundaries return clean empty-state workspaces without cross-tenant data leakage.
 
 ---
@@ -124,12 +126,12 @@ All analytical endpoints enforce **server-side tenant isolation** via JWT bearer
 | **7-Day Activation Rate** | Accounts that created a workspace within 7 days of signup divided by total signups. |
 | **Trial-to-Paid Conversion** | Users who converted to a paid subscription divided by total signups. |
 | **35-Day Paid Conversion (ITT)** | Experiment participants with `paid_start_date` within 35 days of assignment divided by total assigned users. |
-| **ARPU (Intention-To-Treat)** | Total snapshot MRR divided by total assigned users in the variant ($\text{MRR}_{\text{total}} / N_{\text{assigned}}$). |
-| **ARPPU** | Average revenue per paying customer ($\text{MRR}_{\text{total}} / N_{\text{paid}}$). |
+| **ARPU (Intention-To-Treat)** | Active Snapshot MRR divided by total assigned users in the variant ($\text{MRR}_{\text{snapshot}} / N_{\text{assigned}}$). |
+| **ARPPU** | Average Active Snapshot MRR per paying customer ($\text{MRR}_{\text{snapshot}} / N_{\text{paid}}$). |
 | **Post-Conversion Churn Rate** | Converted users with a `cancel_date` divided by total paid conversions in the variant. |
 | **Day 30 (D30) Retention** | Active accounts 30 days post-signup divided by cohort signup volume (mature cohorts only). |
 | **Churn Rate** | Canceled subscriptions divided by signup volume in the active window. |
-| **Ending MRR** | Sum of monthly recurring revenue from active paid subscriptions at the end of the period. |
+| **Active Snapshot MRR** | Active recurring monthly revenue at snapshot time (subscriptions with `cancel_date IS NULL`). Not cumulative cash collected. |
 | **Absolute Lift (pp)** | Difference in proportions: $p_{\text{treatment}} - p_{\text{control}}$, expressed in percentage points. |
 | **Relative Lift (%)** | Percentage improvement over baseline: $\frac{p_{\text{treatment}} - p_{\text{control}}}{p_{\text{control}}} \times 100$. |
 

@@ -54,7 +54,7 @@ async def get_experiment_revenue_analysis(
     experiment_name: Annotated[str, Path(description="Name of the experiment to evaluate")],
     tenant: Annotated[TenantContext, Depends(get_current_tenant)],
 ) -> ExperimentRevenueAnalysisResponse:
-    """Evaluate downstream paid conversion, realized MRR, ARPU lift, and post-conversion churn.
+    """Evaluate downstream paid conversion, active snapshot MRR from experiment cohort, ARPU lift, and post-conversion churn.
 
     Performs point-in-time Intention-To-Treat analysis linking experiment assignments
     to subscription lifecycle events, enforcing server-side tenant isolation.

@@ -3,7 +3,7 @@
 Validates:
 - Intention-To-Treat (ITT) eligible experiment population and denominators.
 - 35-day post-assignment paid conversion observation window.
-- Realized snapshot MRR and Welch's two-sample t-test for ARPU.
+- Active Snapshot MRR from Experiment Cohort and Welch's two-sample t-test for ARPU.
 - Post-conversion churn rates and cancelled subscription handling.
 - Trial-eligible subpopulation secondary breakdown.
 - Sample Ratio Mismatch (SRM) and data quality diagnostics.
@@ -98,7 +98,8 @@ def test_get_experiment_revenue_analysis_onboarding_v2(demo_token: str):
     assert treatment["active_subscribers"] + treatment["churned_subscribers"] == 634
     assert treatment["post_conversion_churn_rate"] == 0.1830
 
-    # Realized MRR & ARPU
+    # Active Snapshot MRR from Experiment Cohort & ARPU
+    assert "Active Snapshot MRR from Experiment Cohort" in data["primary_metric"]
     assert control["total_mrr"] == 15457.0
     assert treatment["total_mrr"] == 15022.0
     assert control["arpu"] == 1.5312
@@ -279,4 +280,26 @@ def test_experiment_revenue_missing_subscription_handling(monkeypatch, tmp_path:
     assert res.variants[0].total_mrr == 0.0
     assert res.variants[1].total_mrr == 0.0
     assert res.diagnostics.missing_subscription_records == 20
+
+
+def test_experiment_revenue_snapshot_mrr_semantics(demo_token: str):
+    """Verify that total_mrr strictly reflects active snapshot MRR, not cumulative cash collected."""
+    headers = {"Authorization": f"Bearer {demo_token}"}
+    response = client.get("/api/v1/experiments/exp_onboarding_v2/revenue", headers=headers)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "Active Snapshot MRR from Experiment Cohort" in data["primary_metric"]
+
+    for variant in data["variants"]:
+        # Each active subscriber pays $29/mo (standard Pro plan)
+        expected_mrr = variant["active_subscribers"] * 29.0
+        assert variant["total_mrr"] == expected_mrr
+        # Churned subscribers converted to paid during the 35d window, but contribute $0 to snapshot MRR
+        assert variant["churned_subscribers"] > 0
+        assert variant["paid_conversions"] == variant["active_subscribers"] + variant["churned_subscribers"]
+        # ARPU is based on active snapshot MRR divided by all ITT assigned users
+        assert round(variant["total_mrr"] / variant["assigned_users"], 4) == round(variant["arpu"], 4)
+        # ARPPU is based on active snapshot MRR divided by total paid conversions
+        assert round(variant["total_mrr"] / variant["paid_conversions"], 2) == round(variant["arppu"], 2)
 

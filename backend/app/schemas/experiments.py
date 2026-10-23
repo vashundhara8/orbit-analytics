@@ -74,9 +74,9 @@ class VariantRevenueMetrics(BaseModel):
     active_subscribers: int = Field(..., description="Active paying subscribers with mrr > 0 at snapshot")
     churned_subscribers: int = Field(..., description="Subscribers who cancelled after converting")
     post_conversion_churn_rate: float = Field(..., description="Churn rate among converted paid users")
-    total_mrr: float = Field(..., description="Total monthly recurring revenue at snapshot")
-    arpu: float = Field(..., description="Average MRR per assigned user (total_mrr / assigned_users)")
-    arppu: float = Field(..., description="Average MRR per paying customer (total_mrr / paid_conversions)")
+    total_mrr: float = Field(..., description="Active Snapshot MRR from Experiment Cohort at end-of-simulation snapshot (not cumulative recognized revenue or cash collected)")
+    arpu: float = Field(..., description="Average Active Snapshot MRR per assigned user (total_mrr / assigned_users)")
+    arppu: float = Field(..., description="Average Active Snapshot MRR per paying customer (total_mrr / paid_conversions)")
 
 
 class RevenueLiftMetrics(BaseModel):

@@ -694,7 +694,7 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
                           <th className="text-right">Active</th>
                           <th className="text-right">Churned</th>
                           <th className="text-right">Post-Conv Churn</th>
-                          <th className="text-right">Total MRR</th>
+                          <th className="text-right">Active Snapshot MRR</th>
                           <th className="text-right">ARPU</th>
                           <th className="text-right">ARPPU</th>
                         </tr>
@@ -802,7 +802,7 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
                       <strong>2. Deduplication Invariant:</strong> Participants assigned multiple times are pinned to their earliest assignment timestamp to avoid double-counting or biased variant weighting.
                     </p>
                     <p style={{ marginBottom: '10px' }}>
-                      <strong>3. Churn Treatment:</strong> Cancelled subscriptions are retained in historical paid conversion counts, but their current snapshot MRR is assigned as $0.00.
+                      <strong>3. Active Snapshot MRR & Churn Treatment:</strong> Revenue is measured as <em>Active Snapshot MRR from Experiment Cohort</em> at simulation cutoff. Cancelled subscriptions are retained in historical paid conversion counts, but their current snapshot MRR is assigned as $0.00. This is a point-in-time snapshot measure of active recurring revenue, not cumulative recognized revenue or total cash collected over the 35-day window.
                     </p>
                   </div>
                 </div>
