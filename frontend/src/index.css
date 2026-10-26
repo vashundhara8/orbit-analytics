@@ -117,6 +117,17 @@ body {
   gap: 16px;
 }
 
+@media (max-width: 1200px) {
+  .top-nav {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .tenant-badge-group {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
 .tenant-badge {
   display: flex;
   align-items: center;
@@ -127,6 +138,12 @@ body {
   border-radius: 999px;
   font-size: 0.82rem;
   color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.brand-tag,
+.tab-badge {
+  white-space: nowrap;
 }
 
 .tenant-indicator {
@@ -135,6 +152,7 @@ body {
   border-radius: 50%;
   background-color: var(--accent-lime);
   box-shadow: 0 0 8px var(--accent-lime);
+  flex-shrink: 0;
 }
 
 /* Navigation Tabs */
@@ -342,6 +360,7 @@ body {
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .badge-positive {
@@ -484,16 +503,19 @@ body {
 .table-container {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.orbit-table {
+.orbit-table,
+.data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
   text-align: left;
 }
 
-.orbit-table th {
+.orbit-table th,
+.data-table th {
   padding: 10px 14px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -502,15 +524,24 @@ body {
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
   background-color: rgba(255, 255, 255, 0.02);
+  white-space: nowrap;
 }
 
-.orbit-table td {
+.orbit-table td,
+.data-table td {
   padding: 12px 14px;
   border-bottom: 1px solid rgba(48, 54, 61, 0.6);
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
-.orbit-table tr:hover td {
+.data-table td:last-child {
+  white-space: normal;
+  min-width: 220px;
+}
+
+.orbit-table tr:hover td,
+.data-table tr:hover td {
   background-color: var(--bg-card-hover);
 }
 
@@ -524,6 +555,7 @@ body {
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .variance-pos {

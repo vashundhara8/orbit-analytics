@@ -152,7 +152,12 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
           >
             <DollarSign size={14} />
             <span>Monetization & Billing (Outcome)</span>
-            <span className="tab-badge" style={{ backgroundColor: 'var(--accent-teal)', color: '#090d16', fontWeight: 700 }}>
+            <span
+              className="tab-badge"
+              style={{ backgroundColor: 'var(--accent-teal)', color: '#090d16', fontWeight: 700 }}
+              title="Intention-To-Treat (ITT): All assigned participants are analyzed in their allocated variant regardless of subsequent engagement or churn to preserve randomization integrity."
+              aria-label="Intention-To-Treat Protocol"
+            >
               ITT
             </span>
           </button>
@@ -396,7 +401,16 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
                 <div className="data-panel">
                   <div className="section-header">
                     <div>
-                      <h3 className="section-title">Sample Ratio Mismatch (SRM)</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3 className="section-title">Sample Ratio Mismatch (SRM)</h3>
+                        <span
+                          title="Sample Ratio Mismatch (SRM): Goodness-of-fit chi-squared test evaluating whether observed variant traffic deviates from expected 50/50 allocation. p >= 0.01 indicates no traffic distortion."
+                          aria-label="Sample Ratio Mismatch diagnostic definition"
+                          style={{ cursor: 'help', color: 'var(--text-muted)' }}
+                        >
+                          <Info size={15} />
+                        </span>
+                      </div>
                       <p className="section-caption">Integrity diagnostic on variant traffic assignment</p>
                     </div>
                     <ShieldCheck
@@ -592,7 +606,14 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
 
                 <div className="kpi-card">
                   <div className="kpi-card-header">
-                    <span className="kpi-card-order">ARPU (ITT)</span>
+                    <span
+                      className="kpi-card-order"
+                      title="Intention-To-Treat ARPU: Total Snapshot MRR divided by total assigned users in variant, avoiding post-treatment survivor selection bias."
+                      style={{ cursor: 'help' }}
+                      aria-label="Intention-To-Treat Average Revenue Per User"
+                    >
+                      ARPU (ITT)
+                    </span>
                     <span className="kpi-card-name">Monthly Revenue / User</span>
                   </div>
                   <div className="kpi-card-value">
@@ -628,7 +649,9 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
                       {revenueAnalysis.significance.conversion_test_name}
                     </span>
                     <span style={{ color: revenueAnalysis.significance.conversion_is_significant ? 'var(--accent-teal)' : 'var(--accent-amber)', fontWeight: 600 }}>
-                      {revenueAnalysis.significance.conversion_is_significant ? 'Reject H₀ (p < 0.05)' : 'Retain H₀ (p = 0.95)'}
+                      {revenueAnalysis.significance.conversion_is_significant
+                        ? `Reject H₀ (p = ${revenueAnalysis.significance.conversion_p_value.toFixed(4)})`
+                        : `Retain H₀ (p = ${revenueAnalysis.significance.conversion_p_value.toFixed(2)})`}
                     </span>
                   </div>
                   <div style={{ marginTop: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
@@ -645,7 +668,9 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
                       {revenueAnalysis.significance.arpu_test_name}
                     </span>
                     <span style={{ color: revenueAnalysis.significance.arpu_is_significant ? 'var(--accent-teal)' : 'var(--accent-amber)', fontWeight: 600 }}>
-                      {revenueAnalysis.significance.arpu_is_significant ? 'Reject H₀' : 'Retain H₀ (p = 0.87)'}
+                      {revenueAnalysis.significance.arpu_is_significant
+                        ? `Reject H₀ (p = ${revenueAnalysis.significance.arpu_p_value.toFixed(4)})`
+                        : `Retain H₀ (p = ${revenueAnalysis.significance.arpu_p_value.toFixed(2)})`}
                     </span>
                   </div>
                   <div style={{ marginTop: '8px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
@@ -694,7 +719,14 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
                           <th className="text-right">Active</th>
                           <th className="text-right">Churned</th>
                           <th className="text-right">Post-Conv Churn</th>
-                          <th className="text-right">Active Snapshot MRR</th>
+                          <th
+                            className="text-right"
+                            title="Active Snapshot MRR: Point-in-time monthly recurring revenue from active subscribers in cohort at observation cutoff. Cancelled subscribers contribute $0.00."
+                            aria-label="Active Snapshot MRR definition"
+                            style={{ cursor: 'help' }}
+                          >
+                            Active Snapshot MRR
+                          </th>
                           <th className="text-right">ARPU</th>
                           <th className="text-right">ARPPU</th>
                         </tr>

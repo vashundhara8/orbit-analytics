@@ -272,6 +272,8 @@ export interface RiskTierBreakdown {
   high_pct: number;
   total_scored: number;
   mean_probability: number;
+  min_probability: number;
+  max_probability: number;
   high_threshold: number;
   medium_threshold: number;
 }

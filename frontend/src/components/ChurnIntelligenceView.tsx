@@ -7,6 +7,7 @@ import {
   Search,
   Database,
   Layers,
+  Info,
 } from 'lucide-react';
 import { api } from '../api/client';
 import {
@@ -255,8 +256,17 @@ export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ te
               border: '1px solid var(--border-color)',
             }}
           >
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-              Discrimination (ROC-AUC)
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Discrimination (ROC-AUC)
+              </div>
+              <span
+                title="Receiver Operating Characteristic - Area Under Curve: Evaluates model ranking quality across all classification thresholds (0.50 = random chance, 1.0 = perfect discrimination)."
+                aria-label="ROC-AUC definition and interpretation"
+                style={{ cursor: 'help', color: 'var(--text-muted)' }}
+              >
+                <Info size={14} />
+              </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -280,8 +290,17 @@ export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ te
               border: '1px solid var(--border-color)',
             }}
           >
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-              Precision-Recall AUC (Average Precision)
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Precision-Recall AUC (Average Precision)
+              </div>
+              <span
+                title="Precision-Recall Area Under Curve: Evaluates positive class precision across recall levels in imbalanced data. Baseline equals positive churn prevalence (~7.01%). Model matches baseline."
+                aria-label="PR-AUC definition and interpretation"
+                style={{ cursor: 'help', color: 'var(--text-muted)' }}
+              >
+                <Info size={14} />
+              </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>
@@ -305,8 +324,17 @@ export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ te
               border: '1px solid var(--border-color)',
             }}
           >
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-              Calibration (Brier Score)
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Calibration (Brier Score)
+              </div>
+              <span
+                title="Brier Score: Mean squared error between predicted probabilities and actual binary outcomes (0 to 1). Lower is better. Baseline represents predicting mean prevalence for all accounts."
+                aria-label="Brier Score definition and interpretation"
+                style={{ cursor: 'help', color: 'var(--text-muted)' }}
+              >
+                <Info size={14} />
+              </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--accent-teal)' }}>
@@ -376,8 +404,11 @@ export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ te
               Operational percentiles partitioned across {dist.total_scored.toLocaleString()} active paying subscribers
             </p>
           </div>
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-            Score Range: ~{(dist.mean_probability * 100 * 0.93).toFixed(2)}% – {(dist.high_threshold * 100 * 1.05).toFixed(2)}%
+          <span
+            style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}
+            title="Empirical minimum and maximum model probabilities across all scored accounts in the active population"
+          >
+            Empirical Score Range: {(dist.min_probability * 100).toFixed(2)}% – {(dist.max_probability * 100).toFixed(2)}%
           </span>
         </div>
 
@@ -440,7 +471,7 @@ export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ te
         </div>
 
         {/* Tier Metric Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
           <div
             style={{
               background: 'var(--bg-card)',

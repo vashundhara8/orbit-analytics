@@ -88,6 +88,10 @@ def test_get_churn_summary_success(demo_token: str):
     assert dist["medium_count"] > 0
     assert dist["low_count"] > 0
 
+    # Verify empirical score range bounds and ordering
+    assert 0.05 <= dist["min_probability"] <= dist["mean_probability"] <= dist["max_probability"] <= 0.15
+    assert dist["min_probability"] <= dist["medium_threshold"] <= dist["high_threshold"] <= dist["max_probability"]
+
     # Verify honest provenance notes
     assert "Audited Synthetic Data Provenance Disclosure" in data["data_provenance_notes"]
 
@@ -136,12 +140,50 @@ def test_tenant_isolation_churn(acme_token: str):
     assert data["tenant_id"] == "org_acme_corp"
     assert data["performance"]["train_samples"] == 0
     assert data["risk_distribution"]["total_scored"] == 0
+    assert data["risk_distribution"]["min_probability"] == 0.0
+    assert data["risk_distribution"]["max_probability"] == 0.0
     assert data["performance"]["baseline_roc_auc"] == 0.50
 
     acc_res = client.get("/api/v1/churn/accounts", headers=headers)
     assert acc_res.status_code == 200
     assert acc_res.json()["total_matching"] == 0
     assert len(acc_res.json()["accounts"]) == 0
+
+
+def test_churn_scores_and_risk_tier_consistency(demo_token: str):
+    """Verify that individual customer account scores strictly fall within empirical min/max
+
+    bounds and that risk tiers align with documented operational thresholds.
+    """
+    headers = {"Authorization": f"Bearer {demo_token}"}
+    sum_res = client.get("/api/v1/churn/summary", headers=headers)
+    assert sum_res.status_code == 200
+    dist = sum_res.json()["risk_distribution"]
+
+    min_p = dist["min_probability"]
+    max_p = dist["max_probability"]
+    med_th = dist["medium_threshold"]
+    high_th = dist["high_threshold"]
+
+    acc_res = client.get("/api/v1/churn/accounts?limit=100", headers=headers)
+    assert acc_res.status_code == 200
+    accounts = acc_res.json()["accounts"]
+    assert len(accounts) == 100
+
+    for acc in accounts:
+        prob = acc["churn_probability"]
+        # Invariant 1: Individual score must fall within the documented summary empirical bounds
+        assert min_p <= prob <= max_p, (
+            f"Account {acc['user_id']} score {prob} out of empirical bounds [{min_p}, {max_p}]"
+        )
+
+        # Invariant 2: Risk tier classification matches percentile thresholds
+        if prob >= high_th:
+            assert acc["risk_tier"] == "high", f"Expected high tier for {prob} >= {high_th}"
+        elif prob >= med_th:
+            assert acc["risk_tier"] == "medium", f"Expected medium tier for {prob} >= {med_th}"
+        else:
+            assert acc["risk_tier"] == "low", f"Expected low tier for {prob} < {med_th}"
 
 
 def test_churn_population_boundary_rules(monkeypatch, tmp_path: Path):

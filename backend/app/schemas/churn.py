@@ -45,6 +45,8 @@ class RiskTierBreakdown(BaseModel):
     high_pct: float
     total_scored: int
     mean_probability: float
+    min_probability: float = Field(0.0, description="Minimum modeled probability across scored cohort")
+    max_probability: float = Field(0.0, description="Maximum modeled probability across scored cohort")
     high_threshold: float
     medium_threshold: float
 

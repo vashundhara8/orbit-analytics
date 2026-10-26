@@ -213,3 +213,31 @@ def test_tenant_isolation_boundary_with_date_filters(acme_token: str):
     assert data["tenant_id"] == "org_acme_corp"
     assert data["cohort_size"] == 0
     assert data["stages"][0]["entering_users"] == 0
+
+
+def test_tenant_switching_and_token_binding(demo_token: str, acme_token: str):
+    """Verify clean state transitions when switching tenants across authenticated sessions.
+
+    Proves that data remains cryptographically bound to the active JWT claim without cross-talk.
+    """
+    demo_headers = {"Authorization": f"Bearer {demo_token}"}
+    acme_headers = {"Authorization": f"Bearer {acme_token}"}
+
+    # Step 1: Query as reference tenant (synthetic demo benchmark)
+    res_demo = client.get("/api/v1/funnel", headers=demo_headers)
+    assert res_demo.status_code == 200
+    assert res_demo.json()["tenant_id"] == settings.default_tenant_id
+    assert res_demo.json()["cohort_size"] == 100000
+
+    # Step 2: Switch to customer tenant (Acme Corp isolated workspace)
+    res_acme = client.get("/api/v1/funnel", headers=acme_headers)
+    assert res_acme.status_code == 200
+    assert res_acme.json()["tenant_id"] == "org_acme_corp"
+    assert res_acme.json()["cohort_size"] == 0
+
+    # Step 3: Switch back to reference tenant
+    res_demo_again = client.get("/api/v1/funnel", headers=demo_headers)
+    assert res_demo_again.status_code == 200
+    assert res_demo_again.json()["tenant_id"] == settings.default_tenant_id
+    assert res_demo_again.json()["cohort_size"] == 100000
+

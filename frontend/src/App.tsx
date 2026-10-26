@@ -91,8 +91,16 @@ export const App: React.FC = () => {
             <div>
               <h1 className="page-title">Funnel Intelligence Workspace</h1>
               <p className="page-subtitle">
-                End-to-end product conversion analysis powered by FastAPI, DuckDB vectorized analytical marts,
-                and cryptographically isolated tenant workspaces.
+                End-to-end product conversion analysis powered by FastAPI, DuckDB analytical marts, and cryptographically isolated tenant partitions.{' '}
+                {currentTenantId === 'org_orbit_demo' ? (
+                  <span style={{ color: 'var(--accent-sky)', fontWeight: 500 }}>
+                    [Reference Workspace: Audited Synthetic Demo Benchmark]
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--accent-lime)', fontWeight: 500 }}>
+                    [Isolated Customer Workspace: {organizationName}]
+                  </span>
+                )}
               </p>
             </div>
             <button

@@ -279,3 +279,52 @@ test('Customer onboarding data quality summary verification', () => {
   const isSufficientWindow = shortWindowSummary.coverage_days >= 14;
   assert.equal(isSufficientWindow, false);
 });
+
+test('Empirical churn score range and threshold consistency', () => {
+  const riskDistribution = {
+    total_scored: 15648,
+    mean_probability: 0.0701,
+    min_probability: 0.0623,
+    max_probability: 0.0868,
+    medium_threshold: 0.0715,
+    high_threshold: 0.0744,
+    low_count: 10953,
+    medium_count: 3130,
+    high_count: 1565,
+    low_pct: 0.70,
+    medium_pct: 0.20,
+    high_pct: 0.10,
+  };
+
+  // Empirical range ordering
+  assert.ok(riskDistribution.min_probability <= riskDistribution.mean_probability);
+  assert.ok(riskDistribution.mean_probability <= riskDistribution.max_probability);
+  assert.ok(riskDistribution.min_probability <= riskDistribution.medium_threshold);
+  assert.ok(riskDistribution.medium_threshold <= riskDistribution.high_threshold);
+  assert.ok(riskDistribution.high_threshold <= riskDistribution.max_probability);
+
+  // Formatted range string matches API bounds without arbitrary multiplier
+  const formattedRange = `${(riskDistribution.min_probability * 100).toFixed(2)}% – ${(riskDistribution.max_probability * 100).toFixed(2)}%`;
+  assert.equal(formattedRange, '6.23% – 8.68%');
+
+  // Verify accounts within empirical bounds
+  const sampleAccounts = [
+    { user_id: 'u_1', churn_probability: 0.0625, risk_tier: 'low' },
+    { user_id: 'u_2', churn_probability: 0.0730, risk_tier: 'medium' },
+    { user_id: 'u_3', churn_probability: 0.0810, risk_tier: 'high' },
+  ];
+
+  for (const acc of sampleAccounts) {
+    assert.ok(acc.churn_probability >= riskDistribution.min_probability);
+    assert.ok(acc.churn_probability <= riskDistribution.max_probability);
+
+    if (acc.churn_probability >= riskDistribution.high_threshold) {
+      assert.equal(acc.risk_tier, 'high');
+    } else if (acc.churn_probability >= riskDistribution.medium_threshold) {
+      assert.equal(acc.risk_tier, 'medium');
+    } else {
+      assert.equal(acc.risk_tier, 'low');
+    }
+  }
+});
+

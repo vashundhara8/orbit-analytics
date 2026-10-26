@@ -303,3 +303,42 @@ def test_experiment_revenue_snapshot_mrr_semantics(demo_token: str):
         # ARPPU is based on active snapshot MRR divided by total paid conversions
         assert round(variant["total_mrr"] / variant["paid_conversions"], 2) == round(variant["arppu"], 2)
 
+
+def test_activation_lift_vs_revenue_neutrality_contrast(demo_token: str):
+    """Verify the critical distinction between statistically significant early activation lift
+
+    and statistically non-significant downstream paid conversion and ARPU revenue impact.
+    Ensures ITT denominators remain identical between both analytical endpoints.
+    """
+    headers = {"Authorization": f"Bearer {demo_token}"}
+    act_res = client.get("/api/v1/experiments/onboarding_v2", headers=headers)
+    assert act_res.status_code == 200
+    act_data = act_res.json()
+
+    rev_res = client.get("/api/v1/experiments/onboarding_v2/revenue", headers=headers)
+    assert rev_res.status_code == 200
+    rev_data = rev_res.json()
+
+    # 1. Denominators match perfectly between proxy and outcome pipelines
+    act_vars = {v["variant"]: v for v in act_data["variants"]}
+    rev_vars = {v["variant"]: v for v in rev_data["variants"]}
+
+    assert act_vars["control"]["users"] == rev_vars["control"]["assigned_users"] == 10095
+    assert act_vars["treatment"]["users"] == rev_vars["treatment"]["assigned_users"] == 9905
+
+    # 2. Activation proxy: Statistically significant positive lift
+    assert act_data["significance"]["is_significant"] is True
+    assert act_data["significance"]["p_value"] < 0.001
+    assert act_data["lift"]["absolute_lift_pp"] > 3.0
+
+    # 3. Monetization outcome: Statistically non-significant conversion and ARPU
+    assert rev_data["significance"]["conversion_is_significant"] is False
+    assert rev_data["significance"]["conversion_p_value"] > 0.90
+    assert rev_data["significance"]["arpu_is_significant"] is False
+    assert rev_data["significance"]["arpu_p_value"] > 0.80
+
+    # 4. Decision advisory clearly discloses neutral commercial outcome despite proxy lift
+    assert "NEUTRAL REVENUE IMPACT" in rev_data["decision_advisory"]
+    assert "did NOT compound into downstream paid conversion or revenue expansion" in rev_data["decision_advisory"]
+
+

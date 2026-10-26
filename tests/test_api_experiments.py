@@ -233,3 +233,65 @@ def test_experiment_negative_regression(monkeypatch, tmp_path):
     assert res.lift.absolute_lift < 0
     assert "Statistically significant negative regression" in res.decision_advisory
     assert "Treatment variant performed significantly worse" in res.decision_advisory
+
+
+def test_experiment_mathematical_pipeline_verification(demo_token: str):
+    """Independently verifies 50/50 binomial SRM, activation lift, pooled standard error,
+
+    Wald 95% confidence intervals, and hypothesis z-test directly from the underlying data.
+    """
+    import math
+
+    from scipy.stats import chi2, norm
+
+    headers = {"Authorization": f"Bearer {demo_token}"}
+    response = client.get("/api/v1/experiments/onboarding_v2", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+
+    variants = {v["variant"]: v for v in data["variants"]}
+    control = variants["control"]
+    treatment = variants["treatment"]
+
+    n_c, a_c = control["users"], control["activated_users"]
+    n_t, a_t = treatment["users"], treatment["activated_users"]
+    n_total = n_c + n_t
+
+    # 1. 50/50 Binomial Sample Ratio Mismatch (SRM) Goodness-of-Fit Test
+    e_c = n_total / 2.0
+    e_t = n_total / 2.0
+    chi2_stat = ((n_c - e_c) ** 2) / e_c + ((n_t - e_t) ** 2) / e_t
+    expected_srm_p = 1.0 - chi2.cdf(chi2_stat, df=1)
+
+    assert abs(data["srm"]["p_value"] - round(expected_srm_p, 4)) < 0.005
+    assert data["srm"]["has_srm"] == bool(expected_srm_p < 0.01)
+
+    # 2. Activation Lift
+    p_c = a_c / n_c
+    p_t = a_t / n_t
+    abs_lift = p_t - p_c
+    rel_lift = abs_lift / p_c
+
+    assert abs(control["activation_rate"] - round(p_c, 4)) < 0.0001
+    assert abs(treatment["activation_rate"] - round(p_t, 4)) < 0.0001
+    assert abs(data["lift"]["absolute_lift"] - round(abs_lift, 4)) < 0.0001
+    assert abs(data["lift"]["relative_lift"] - rel_lift) < 0.0005
+
+    # 3. Pooled Two-Proportion Hypothesis Test (Z-test)
+    p_pool = (a_c + a_t) / n_total
+    se_pool = math.sqrt(p_pool * (1.0 - p_pool) * (1.0 / n_c + 1.0 / n_t))
+    z_stat = abs_lift / se_pool
+    expected_z_p = 2.0 * (1.0 - norm.cdf(abs(z_stat)))
+
+    assert abs(data["significance"]["z_statistic"] - round(z_stat, 4)) < 0.01
+    assert abs(data["significance"]["p_value"] - round(expected_z_p, 4)) < 0.001
+    assert data["significance"]["is_significant"] == bool(expected_z_p < 0.05)
+
+    # 4. Wald 95% Confidence Interval for Difference
+    se_diff = math.sqrt((p_c * (1.0 - p_c) / n_c) + (p_t * (1.0 - p_t) / n_t))
+    ci_low_pp = (abs_lift - 1.959964 * se_diff) * 100.0
+    ci_high_pp = (abs_lift + 1.959964 * se_diff) * 100.0
+
+    assert abs(data["lift"]["ci95_difference_low_pp"] - round(ci_low_pp, 2)) < 0.05
+    assert abs(data["lift"]["ci95_difference_high_pp"] - round(ci_high_pp, 2)) < 0.05
+

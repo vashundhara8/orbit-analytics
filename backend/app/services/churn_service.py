@@ -120,6 +120,7 @@ class ChurnService:
             p.churn_target
         FROM paid_users p
         LEFT JOIN obs_events oe ON p.user_id = oe.user_id
+        ORDER BY p.user_id
         """
 
         con = duckdb.connect()
@@ -201,6 +202,8 @@ class ChurnService:
             high_pct=round(high_cnt / total_scored, 4),
             total_scored=total_scored,
             mean_probability=round(float(all_probas.mean()), 4),
+            min_probability=round(float(all_probas.min()), 4),
+            max_probability=round(float(all_probas.max()), 4),
             high_threshold=round(high_thresh, 4),
             medium_threshold=round(med_thresh, 4),
         )
@@ -430,6 +433,8 @@ class ChurnService:
                 high_pct=0.0,
                 total_scored=0,
                 mean_probability=0.0,
+                min_probability=0.0,
+                max_probability=0.0,
                 high_threshold=0.0,
                 medium_threshold=0.0,
             ),
