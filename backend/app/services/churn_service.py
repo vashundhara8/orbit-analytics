@@ -57,9 +57,19 @@ class ChurnService:
         Events occurring after t_obs (paid_start_date + 30 days) are strictly excluded from features.
         Target evaluates cancellation in the subsequent 60-day horizon (paid_start_date + 30d to +90d).
         """
-        raw_users = (self.tenant_raw_dir / "dim_users.parquet").as_posix()
-        raw_events = (self.tenant_raw_dir / "fact_events.parquet").as_posix()
-        raw_subs = (self.tenant_raw_dir / "fact_subscriptions.parquet").as_posix()
+        if self.tenant_raw_dir is None:
+            return pd.DataFrame()
+
+        users_file = self.tenant_raw_dir / "dim_users.parquet"
+        events_file = self.tenant_raw_dir / "fact_events.parquet"
+        subs_file = self.tenant_raw_dir / "fact_subscriptions.parquet"
+
+        if not (users_file.exists() and events_file.exists() and subs_file.exists()):
+            return pd.DataFrame()
+
+        raw_users = users_file.as_posix()
+        raw_events = events_file.as_posix()
+        raw_subs = subs_file.as_posix()
 
         query = f"""
         WITH paid_users AS (

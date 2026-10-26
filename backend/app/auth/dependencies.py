@@ -26,6 +26,13 @@ TENANT_REGISTRY: dict[str, dict[str, str]] = {
     },
 }
 
+# Whitelist of workspaces permitted for exploratory demonstration tokens
+DEMO_ALLOWED_TENANTS: set[str] = {
+    settings.default_tenant_id,
+    "org_acme_corp",
+    "org_starlight_saas",
+}
+
 DEMO_USERS: dict[str, AuthenticatedUser] = {
     "analyst@orbitanalytics.io": AuthenticatedUser(
         user_id="usr_orbit_01",
@@ -110,3 +117,20 @@ async def get_current_tenant(
         organization_name=tenant_info["name"],
         is_active=True,
     )
+
+
+def require_roles(*allowed_roles: UserRole):
+    """Enforce role-based access control (RBAC) on sensitive endpoints."""
+
+    async def role_checker(
+        current_user: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    ) -> AuthenticatedUser:
+        if current_user.role not in allowed_roles:
+            role_names = ", ".join(r.value for r in allowed_roles)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Role '{current_user.role.value}' is not authorized for this operation. Required role(s): {role_names}.",
+            )
+        return current_user
+
+    return role_checker

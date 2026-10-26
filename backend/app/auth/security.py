@@ -55,15 +55,21 @@ def create_access_token(user: AuthenticatedUser) -> str:
 
 
 def verify_access_token(token: str) -> TokenData | None:
-    """Verify cryptographic signature, expiration, and tenant claims from bearer token."""
+    """Verify cryptographic signature, algorithm header, expiration, and tenant claims from bearer token."""
     try:
         parts = token.split(".")
         if len(parts) != 3:
             return None
 
         encoded_header, encoded_payload, encoded_signature = parts
-        signing_input = f"{encoded_header}.{encoded_payload}".encode()
 
+        # Verify header structure and cryptographic algorithm (prevent algorithm confusion attacks)
+        header_bytes = _base64url_decode(encoded_header)
+        header = json.loads(header_bytes.decode("utf-8"))
+        if header.get("alg") != settings.algorithm or header.get("typ") != "JWT":
+            return None
+
+        signing_input = f"{encoded_header}.{encoded_payload}".encode()
         expected_sig = hmac.new(
             settings.secret_key.encode(),
             signing_input,
@@ -78,16 +84,38 @@ def verify_access_token(token: str) -> TokenData | None:
         payload = json.loads(payload_bytes.decode("utf-8"))
 
         now = int(time.time())
-        if payload.get("exp", 0) < now:
+
+        # Enforce expiration
+        exp = payload.get("exp")
+        if not isinstance(exp, (int, float)) or exp <= now:
+            return None
+
+        # Clock skew protection against future-dated tokens
+        iat = payload.get("iat")
+        if isinstance(iat, (int, float)) and iat > (now + 300):
+            return None
+
+        # Enforce mandatory claims
+        required_claims = ("sub", "email", "tenant_id", "role", "exp")
+        if not all(k in payload for k in required_claims):
+            return None
+
+        tenant_id = str(payload["tenant_id"]).strip()
+        if not tenant_id:
+            return None
+
+        try:
+            role = UserRole(payload["role"])
+        except (ValueError, KeyError):
             return None
 
         return TokenData(
             sub=payload["sub"],
             email=payload["email"],
-            tenant_id=payload["tenant_id"],
-            role=UserRole(payload["role"]),
+            tenant_id=tenant_id,
+            role=role,
             org_name=payload.get("org_name", settings.default_tenant_name),
-            exp=payload["exp"],
+            exp=int(exp),
         )
     except Exception:
         return None

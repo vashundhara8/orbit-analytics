@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
 
-from backend.app.auth.dependencies import DEMO_USERS, TENANT_REGISTRY
+from backend.app.auth.dependencies import DEMO_ALLOWED_TENANTS, DEMO_USERS, TENANT_REGISTRY
 from backend.app.auth.models import AuthenticatedUser, LoginRequest, TokenResponse, UserRole
 from backend.app.auth.security import create_access_token
 from backend.app.config import settings
@@ -54,17 +54,37 @@ async def login_for_access_token(request: LoginRequest) -> TokenResponse:
 
 @router.get("/demo-token", response_model=TokenResponse, summary="Get Quick Access Token for Demo Tenant")
 async def get_demo_token(tenant_id: str = settings.default_tenant_id) -> TokenResponse:
-    """Issue a demonstration token for local development and exploratory review."""
+    """Issue an unprivileged demonstration token for local development and exploratory review.
+
+    Strictly disabled in production environments and restricted only to pre-approved demonstration workspaces.
+    Cannot grant administrative roles or arbitrary customer tenant access.
+    """
+    is_production = settings.environment.lower() in ("production", "prod")
+    if not settings.enable_demo_auth or is_production:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Demo authentication is disabled in production environments. Please use authenticated credentials.",
+        )
+
+    if tenant_id not in DEMO_ALLOWED_TENANTS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Demo tokens cannot be issued for arbitrary tenant '{tenant_id}'. "
+                "Exploratory access is restricted to approved demonstration workspaces."
+            ),
+        )
+
     tenant_info = TENANT_REGISTRY.get(tenant_id)
-    if not tenant_info:
+    if not tenant_info or tenant_info.get("status") != "active":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tenant '{tenant_id}' not found.",
+            detail=f"Tenant '{tenant_id}' not found or inactive.",
         )
 
     demo_user = AuthenticatedUser(
-        user_id="usr_orbit_demo",
-        email=f"analyst@{tenant_id}.orbitanalytics.io",
+        user_id=f"usr_demo_{tenant_id}",
+        email=f"demo@{tenant_id}.orbitanalytics.io",
         tenant_id=tenant_id,
         role=UserRole.ANALYST,
         organization_name=tenant_info["name"],

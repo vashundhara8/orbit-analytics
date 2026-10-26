@@ -6,8 +6,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 
-from backend.app.auth.dependencies import get_current_tenant, get_current_user
-from backend.app.auth.models import AuthenticatedUser, TenantContext
+from backend.app.auth.dependencies import get_current_tenant, require_roles
+from backend.app.auth.models import AuthenticatedUser, TenantContext, UserRole
 from backend.app.schemas.onboarding import IngestionStatusResponse, IngestionUploadResponse
 from backend.app.services.ingestion_service import IngestionService
 
@@ -65,7 +65,7 @@ async def get_ingestion_status(
 async def upload_customer_data(
     file: Annotated[UploadFile, File(description="CSV dataset with user events")],
     tenant: Annotated[TenantContext, Depends(get_current_tenant)],
-    user: Annotated[AuthenticatedUser, Depends(get_current_user)],
+    user: Annotated[AuthenticatedUser, Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST))],
 ) -> IngestionUploadResponse:
     """Validate and ingest customer event dataset into isolated tenant storage."""
     filename = file.filename or "uploaded_data.csv"
