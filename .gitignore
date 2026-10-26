@@ -220,6 +220,7 @@ __marimo__/
 # Project-specific
 data/raw/
 data/processed/
+data/tenants/
 
 # Node.js and Frontend
 node_modules/

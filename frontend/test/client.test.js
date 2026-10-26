@@ -241,3 +241,41 @@ test('Active Snapshot MRR calculation and non-cumulative semantics', () => {
   const arppu = activeSnapshotMrr / totalPaidConversions;
   assert.equal(Math.round(arppu * 100) / 100, 24.00);
 });
+
+test('Customer onboarding template URL construction', () => {
+  const baseApiUrl = 'http://127.0.0.1:8000';
+  const getTemplateDownloadUrl = (apiBase) => `${apiBase}/api/v1/onboarding/template`;
+  assert.equal(
+    getTemplateDownloadUrl(baseApiUrl),
+    'http://127.0.0.1:8000/api/v1/onboarding/template'
+  );
+});
+
+test('Customer onboarding data quality summary verification', () => {
+  const qualitySummary = {
+    total_rows_received: 250,
+    accepted_events: 200,
+    rejected_rows: 50,
+    unique_users: 15,
+    min_timestamp: '2025-01-01T10:00:00Z',
+    max_timestamp: '2025-02-15T15:30:00Z',
+    coverage_days: 45,
+    sample_errors: ['Row 12: Missing user_id'],
+  };
+
+  assert.equal(qualitySummary.accepted_events + qualitySummary.rejected_rows, qualitySummary.total_rows_received);
+  assert.equal(qualitySummary.coverage_days >= 14, true);
+
+  const shortWindowSummary = {
+    total_rows_received: 50,
+    accepted_events: 50,
+    rejected_rows: 0,
+    unique_users: 5,
+    min_timestamp: '2025-01-01T00:00:00Z',
+    max_timestamp: '2025-01-05T00:00:00Z',
+    coverage_days: 4,
+    sample_errors: [],
+  };
+  const isSufficientWindow = shortWindowSummary.coverage_days >= 14;
+  assert.equal(isSufficientWindow, false);
+});

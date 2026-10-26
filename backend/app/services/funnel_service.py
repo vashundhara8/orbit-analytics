@@ -30,16 +30,31 @@ class FunnelService:
         self.tenant_id = tenant_id
         self.org_name = org_name
         self.tenant_data_dir = self._resolve_tenant_storage(tenant_id)
+        self.tenant_raw_dir = self._resolve_tenant_raw_storage(tenant_id)
 
     def _resolve_tenant_storage(self, tenant_id: str) -> Path | None:
         """Resolve storage path enforcing strict tenant isolation boundaries."""
         if tenant_id == settings.default_tenant_id:
             return settings.processed_dir
 
+        processed_path = settings.data_dir / "tenants" / tenant_id / "processed"
+        if processed_path.exists():
+            return processed_path
+
         tenant_path = settings.data_dir / "tenants" / tenant_id
         if tenant_path.exists():
             return tenant_path
         # Tenant has no provisioned datasets yet
+        return None
+
+    def _resolve_tenant_raw_storage(self, tenant_id: str) -> Path | None:
+        """Resolve raw storage path enforcing strict tenant isolation boundaries."""
+        if tenant_id == settings.default_tenant_id:
+            return settings.raw_dir
+
+        tenant_path = settings.data_dir / "tenants" / tenant_id / "raw"
+        if tenant_path.exists():
+            return tenant_path
         return None
 
     def get_funnel_metrics(self, filters: FunnelFilterParams) -> FunnelAnalysisResponse:
@@ -62,9 +77,27 @@ class FunnelService:
 
     def _compute_date_filtered_funnel(self, filters: FunnelFilterParams) -> FunnelAnalysisResponse:
         """Execute tenant-scoped parameterized DuckDB query with date filters."""
-        raw_users_path = (settings.raw_dir / "dim_users.parquet").as_posix()
-        raw_events_path = (settings.raw_dir / "fact_events.parquet").as_posix()
-        raw_subs_path = (settings.raw_dir / "fact_subscriptions.parquet").as_posix()
+        if self.tenant_raw_dir is None:
+            return self._build_empty_response(filters)
+
+        raw_users_file = self.tenant_raw_dir / "dim_users.parquet"
+        raw_events_file = self.tenant_raw_dir / "fact_events.parquet"
+        raw_subs_file = self.tenant_raw_dir / "fact_subscriptions.parquet"
+
+        if not raw_users_file.exists() or not raw_events_file.exists():
+            return self._build_empty_response(filters)
+
+        raw_users_path = raw_users_file.as_posix()
+        raw_events_path = raw_events_file.as_posix()
+
+        subs_join = ""
+        paid_case = "MAX(CASE WHEN e.event_name = 'paid' THEN 1 ELSE 0 END) AS reached_paid"
+        if raw_subs_file.exists():
+            raw_subs_path = raw_subs_file.as_posix()
+            subs_join = f"LEFT JOIN read_parquet('{raw_subs_path}') s ON u.user_id = s.user_id"
+            paid_case = (
+                "MAX(CASE WHEN s.paid_start_date IS NOT NULL OR e.event_name = 'paid' THEN 1 ELSE 0 END) AS reached_paid"
+            )
 
         where_clauses = ["1=1"]
         params: list[str] = []
@@ -87,10 +120,10 @@ class FunnelService:
                 MAX(CASE WHEN e.event_name = 'workspace_created' THEN 1 ELSE 0 END) AS reached_workspace,
                 MAX(CASE WHEN e.event_name = 'invite_sent'       THEN 1 ELSE 0 END) AS reached_invite,
                 MAX(CASE WHEN e.event_name = 'first_project'     THEN 1 ELSE 0 END) AS reached_project,
-                MAX(CASE WHEN s.paid_start_date IS NOT NULL       THEN 1 ELSE 0 END) AS reached_paid
+                {paid_case}
             FROM read_parquet('{raw_users_path}') u
-            LEFT JOIN read_parquet('{raw_events_path}') e        ON u.user_id = e.user_id
-            LEFT JOIN read_parquet('{raw_subs_path}') s ON u.user_id = s.user_id
+            LEFT JOIN read_parquet('{raw_events_path}') e ON u.user_id = e.user_id
+            {subs_join}
             WHERE {where_sql}
             GROUP BY u.user_id, u.acquisition_channel
         )

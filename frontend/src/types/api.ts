@@ -308,3 +308,36 @@ export interface ChurnAccountsResponse {
   total_matching: number;
   accounts: AtRiskAccount[];
 }
+
+// ── Customer Data Onboarding & Ingestion Types ──────────────────────────────
+
+export interface DataQualitySummary {
+  total_rows: number;
+  accepted_rows: number;
+  rejected_rows: number;
+  duplicate_rows: number;
+  total_unique_users: number;
+  date_range_start: string | null;
+  date_range_end: string | null;
+  coverage_days: number;
+  is_window_complete: boolean;
+  warnings: string[];
+  rejection_reasons: Record<string, number>;
+  rejection_samples: string[];
+}
+
+export interface IngestionStatusResponse {
+  tenant_id: string;
+  organization_name: string;
+  has_data: boolean;
+  last_ingested_at: string | null;
+  filename: string | null;
+  quality_summary: DataQualitySummary | null;
+}
+
+export interface IngestionUploadResponse {
+  status: 'success' | 'warning' | 'error';
+  message: string;
+  tenant_id: string;
+  quality_summary: DataQualitySummary;
+}

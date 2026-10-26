@@ -7,6 +7,8 @@ import {
   ExperimentSummaryItem,
   FunnelAnalysisResponse,
   HealthResponse,
+  IngestionStatusResponse,
+  IngestionUploadResponse,
   TokenResponse,
 } from '../types/api';
 
@@ -167,6 +169,56 @@ class ApiClient {
     }
     const query = q.toString() ? `?${q.toString()}` : '';
     return this.request<ChurnAccountsResponse>(`/churn/accounts${query}`);
+  }
+
+  // ── Customer Data Onboarding & Ingestion ──────────────────────────────────
+
+  async getIngestionStatus(): Promise<IngestionStatusResponse> {
+    return this.request<IngestionStatusResponse>('/onboarding/status');
+  }
+
+  getTemplateDownloadUrl(): string {
+    return `${API_BASE}/onboarding/template`;
+  }
+
+  async uploadCustomerCsv(file: File): Promise<IngestionUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/onboarding/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (response.status === 401) {
+      this.clearToken();
+      throw new Error('Authentication required or session expired.');
+    }
+
+    if (!response.ok) {
+      let errorMsg = `Upload failed (${response.status})`;
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          if (typeof errorData.detail === 'string') {
+            errorMsg = errorData.detail;
+          } else if (typeof errorData.detail === 'object' && errorData.detail.message) {
+            errorMsg = errorData.detail.message;
+          }
+        }
+      } catch {
+        // Fallback to errorMsg
+      }
+      throw new Error(errorMsg);
+    }
+
+    return response.json();
   }
 }
 

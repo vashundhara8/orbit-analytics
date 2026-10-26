@@ -10,10 +10,12 @@ from backend.app.api.v1.endpoints.cohorts import router as cohorts_router
 from backend.app.api.v1.endpoints.experiments import router as experiments_router
 from backend.app.api.v1.endpoints.funnel import router as funnel_router
 from backend.app.api.v1.endpoints.health import router as health_router
+from backend.app.api.v1.endpoints.onboarding import router as onboarding_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(health_router)
 api_v1_router.include_router(auth_router)
+api_v1_router.include_router(onboarding_router)
 api_v1_router.include_router(funnel_router)
 api_v1_router.include_router(cohorts_router)
 api_v1_router.include_router(experiments_router)

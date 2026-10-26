@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
+
+try:
+    import streamlit_app.utils.theme  # noqa: F401
+except ModuleNotFoundError:
+    pytest.skip("Legacy Streamlit frontend was replaced by React in Phase 4/5", allow_module_level=True)
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st

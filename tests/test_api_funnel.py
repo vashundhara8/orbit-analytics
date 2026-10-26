@@ -199,3 +199,17 @@ def test_tenant_isolation_boundary(acme_token: str):
     # proving Orbit Demo data is NEVER leaked across tenant boundaries!
     assert data["cohort_size"] == 0
     assert data["stages"][0]["entering_users"] == 0
+
+
+def test_tenant_isolation_boundary_with_date_filters(acme_token: str):
+    """Verify that date-filtered dynamic DuckDB queries do NOT leak default tenant raw data."""
+    headers = {"Authorization": f"Bearer {acme_token}"}
+    response = client.get(
+        "/api/v1/funnel?start_date=2024-01-01&end_date=2024-12-31",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["tenant_id"] == "org_acme_corp"
+    assert data["cohort_size"] == 0
+    assert data["stages"][0]["entering_users"] == 0

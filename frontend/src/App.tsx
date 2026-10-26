@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { AlertCircle, RefreshCw, Layers, UploadCloud } from 'lucide-react';
 import { api } from './api/client';
 import { FunnelAnalysisResponse } from './types/api';
 import { TopNav } from './components/TopNav';
@@ -12,6 +12,7 @@ import { ChannelBenchmarkMatrix } from './components/ChannelBenchmarkMatrix';
 import { CohortRetentionView } from './components/CohortRetentionView';
 import { ExperimentationView } from './components/ExperimentationView';
 import { ChurnIntelligenceView } from './components/ChurnIntelligenceView';
+import { DataOnboardingModal } from './components/DataOnboardingModal';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('funnel');
@@ -23,6 +24,8 @@ export const App: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
 
   const loadFunnelData = useCallback(
     async (tenantId: string, channel: string, start: string, end: string) => {
@@ -84,13 +87,24 @@ export const App: React.FC = () => {
 
       {activeTab === 'funnel' && (
         <>
-          <header className="page-header">
-            <h1 className="page-title">Funnel Intelligence Workspace</h1>
-            <p className="page-subtitle">
-              End-to-end product conversion analysis powered by FastAPI, DuckDB vectorized analytical marts,
-              and cryptographically isolated tenant workspaces.
-            </p>
+          <header className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <h1 className="page-title">Funnel Intelligence Workspace</h1>
+              <p className="page-subtitle">
+                End-to-end product conversion analysis powered by FastAPI, DuckDB vectorized analytical marts,
+                and cryptographically isolated tenant workspaces.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsOnboardingOpen(true)}
+              className="btn-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontSize: '0.875rem' }}
+            >
+              <UploadCloud size={16} />
+              <span>Onboard Customer Data</span>
+            </button>
           </header>
+
 
           <FilterBar
             availableChannels={funnelData?.available_channels || []}
@@ -141,11 +155,20 @@ export const App: React.FC = () => {
                   <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px' }}>
                     Isolated Empty Workspace
                   </h3>
-                  <p style={{ color: 'var(--text-secondary)', maxWidth: '520px', fontSize: '0.9rem' }}>
+                  <p style={{ color: 'var(--text-secondary)', maxWidth: '520px', fontSize: '0.9rem', marginBottom: '16px' }}>
                     Workspace <strong>{funnelData.organization_name}</strong> ({funnelData.tenant_id}) has strict tenant isolation enforced.
-                    No data exists in this tenant partition yet. Switch back to <em>Orbit Reference SaaS Corp</em> to review the 100k user dataset.
+                    No data exists in this tenant partition yet. You can upload custom event telemetry to compute this funnel live, or switch to <em>Orbit Reference SaaS Corp</em> to review the demo fixture.
                   </p>
+                  <button
+                    onClick={() => setIsOnboardingOpen(true)}
+                    className="btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px' }}
+                  >
+                    <UploadCloud size={16} />
+                    <span>Upload & Ingest Customer Events (CSV)</span>
+                  </button>
                 </div>
+
               ) : (
                 <>
                   <KpiStrip stages={funnelData.stages} />
@@ -208,6 +231,14 @@ export const App: React.FC = () => {
           <ChurnIntelligenceView tenantId={currentTenantId} />
         </>
       )}
+
+      <DataOnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onDataIngested={() => loadFunnelData(currentTenantId, selectedChannel, startDate, endDate)}
+        tenantName={organizationName}
+        tenantId={currentTenantId}
+      />
     </div>
   );
 };

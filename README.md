@@ -153,22 +153,23 @@ orbit-analysis/
 │   └── app/
 │       ├── main.py                # Application entry point with CORS and routing
 │       ├── config.py              # Settings and storage path resolution
-│       ├── api/v1/endpoints/      # Versioned REST endpoints
-│       ├── services/              # Analytical service layer (DuckDB queries)
+│       ├── api/v1/endpoints/      # Versioned REST endpoints (funnel, cohorts, experiments, churn, onboarding)
+│       ├── services/              # Analytical service layer (DuckDB queries, ingestion service)
 │       ├── schemas/               # Pydantic request/response models
 │       └── auth/                  # JWT security, tenant isolation, and user models
 ├── frontend/                      # React + TypeScript + Vite dashboard
 │   ├── src/
-│   │   ├── App.tsx                # Root application with tab navigation
-│   │   ├── components/            # FunnelVisualizer, CohortRetentionView, etc.
-│   │   ├── api/client.ts          # Typed API client with auth token management
+│   │   ├── App.tsx                # Root application with tab navigation & onboarding modal trigger
+│   │   ├── components/            # FunnelVisualizer, CohortRetentionView, DataOnboardingModal, etc.
+│   │   ├── api/client.ts          # Typed API client with multipart CSV upload & auth token management
 │   │   └── types/api.ts           # TypeScript interfaces matching backend schemas
 │   ├── test/                      # Frontend client tests
 │   ├── package.json               # Frontend dependencies and scripts
 │   └── vite.config.ts             # Vite build configuration
 ├── data/
-│   ├── raw/                       # Generated Parquet datasets (gitignored)
-│   ├── processed/                 # DuckDB analytical marts (gitignored)
+│   ├── raw/                       # Default tenant Parquet datasets (gitignored)
+│   ├── processed/                 # Default tenant DuckDB analytical marts (gitignored)
+│   ├── tenants/                   # Isolated customer tenant partitions ({tenant_id}/raw & /processed)
 │   └── sample/                    # Sample CSVs for inspection
 ├── sql/
 │   ├── staging/                   # DuckDB staging views (stg_*.sql)
@@ -180,7 +181,8 @@ orbit-analysis/
 │       ├── analysis.py            # Funnel, cohort, A/B test, churn modeling
 │       └── metrics.py             # Growth KPI helper functions
 ├── tests/                         # pytest test suite
-│   ├── test_api_funnel.py         # Funnel API endpoint tests
+│   ├── test_api_onboarding.py     # Customer data CSV onboarding, validation, & isolation tests
+│   ├── test_api_funnel.py         # Funnel API endpoint & tenant isolation boundary tests
 │   ├── test_api_cohorts.py        # Cohort API tests
 │   ├── test_api_experiments.py    # Experimentation API tests
 │   ├── test_api_churn.py          # Churn API tests
@@ -232,13 +234,13 @@ python -m python.src.run_sql_models
 
 ### 3. Run Test Suite & Linting
 
-**Backend Tests & Linting (119 passing tests):**
+**Backend Tests & Linting (115 passing tests, 1 legacy skipped):**
 ```powershell
 python -m pytest
 ruff check .
 ```
 
-**Frontend Tests & Type Check (11 passing unit tests):**
+**Frontend Tests & Type Check (19 passing unit tests):**
 ```powershell
 cd frontend
 npm test
