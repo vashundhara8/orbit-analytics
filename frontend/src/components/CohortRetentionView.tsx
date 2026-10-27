@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Info, Calendar, Sliders, Layers } from 'lucide-react';
+import { Users, Info, Calendar, Sliders, Layers, UploadCloud } from 'lucide-react';
 import { api } from '../api/client';
 import { CohortRetentionResponse } from '../types/api';
 
 interface CohortRetentionViewProps {
   tenantId: string;
+  onOnboardClick?: () => void;
 }
 
-export const CohortRetentionView: React.FC<CohortRetentionViewProps> = ({ tenantId }) => {
+export const CohortRetentionView: React.FC<CohortRetentionViewProps> = ({ tenantId, onOnboardClick }) => {
   const [data, setData] = useState<CohortRetentionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -285,10 +286,21 @@ export const CohortRetentionView: React.FC<CohortRetentionViewProps> = ({ tenant
                     <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px' }}>
                       Isolated Empty Workspace
                     </h3>
-                    <p style={{ color: 'var(--text-secondary)', maxWidth: '520px', fontSize: '0.9rem' }}>
+                    <p style={{ color: 'var(--text-secondary)', maxWidth: '520px', fontSize: '0.9rem', marginBottom: '16px' }}>
                       Workspace <strong>{data.organization_name}</strong> ({data.tenant_id}) has strict tenant isolation enforced.
                       No cohort retention activity recorded in this partition yet.
                     </p>
+                    {onOnboardClick && (
+                      <button
+                        type="button"
+                        onClick={onOnboardClick}
+                        className="btn-primary"
+                        style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+                      >
+                        <UploadCloud size={16} />
+                        <span>Upload Customer Data (CSV)</span>
+                      </button>
+                    )}
                   </>
                 ) : (
                   <>

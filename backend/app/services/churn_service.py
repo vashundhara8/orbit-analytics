@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 from pathlib import Path
 
 import duckdb
@@ -396,6 +398,55 @@ class ChurnService:
             total_matching=total_matching,
             accounts=accounts,
         )
+
+    def export_churn_csv(
+        self,
+        risk_tier: str | None = None,
+        industry: str | None = None,
+        plan_type: str | None = None,
+        limit: int = 500,
+    ) -> str:
+        """Export prioritized at-risk customer accounts as formatted CSV."""
+        resp = self.get_at_risk_accounts(
+            risk_tier=risk_tier,
+            industry=industry,
+            plan_type=plan_type,
+            limit=limit,
+        )
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "user_id",
+            "churn_probability",
+            "risk_tier",
+            "days_since_last_event_at_cutoff",
+            "events_in_30d",
+            "distinct_events_in_30d",
+            "feature_used_count",
+            "plan_type",
+            "company_size",
+            "industry",
+            "recommended_action",
+            "prediction_cutoff",
+            "exploratory_review_suggestion",
+        ])
+        for acc in resp.accounts:
+            writer.writerow([
+                acc.user_id,
+                f"{acc.churn_probability:.4f}",
+                acc.risk_tier,
+                f"{acc.days_since_last_event_at_cutoff:.1f}",
+                acc.events_in_30d,
+                acc.distinct_events_in_30d,
+                acc.feature_used_count,
+                acc.plan_type,
+                acc.company_size,
+                acc.industry,
+                acc.recommended_action,
+                acc.prediction_cutoff,
+                acc.exploratory_review_suggestion,
+            ])
+        return output.getvalue()
 
     def _build_empty_summary(self) -> ChurnSummaryResponse:
         """Return zeroed summary for empty or isolated tenant workspaces."""

@@ -258,3 +258,31 @@ def test_churn_population_boundary_rules(monkeypatch, tmp_path: Path):
     assert user_target["u_cancel_day90"] == 1, "Cancelled on Day 90 boundary must have churn_target = 1"
     assert user_target["u_cancel_day91"] == 0, "Cancelled after Day 90 must have churn_target = 0"
     assert user_target["u_active_null"] == 0, "Active non-cancelled user must have churn_target = 0"
+
+
+def test_export_churn_accounts_endpoint(demo_token: str, acme_token: str):
+    """Verify authorized churn at-risk accounts CSV export endpoint."""
+    # 1. Unauthenticated request rejected
+    unauth_res = client.get("/api/v1/churn/export")
+    assert unauth_res.status_code == 401
+
+    # 2. Demo tenant export
+    demo_headers = {"Authorization": f"Bearer {demo_token}"}
+    res_demo = client.get("/api/v1/churn/export?limit=15&risk_tier=high", headers=demo_headers)
+    assert res_demo.status_code == 200
+    assert "text/csv" in res_demo.headers["content-type"]
+    assert f'filename="at_risk_accounts_{settings.default_tenant_id}.csv"' in res_demo.headers["content-disposition"]
+    lines = res_demo.text.strip().splitlines()
+    assert len(lines) > 1
+    assert "user_id,churn_probability,risk_tier" in lines[0]
+    for row in lines[1:]:
+        assert ",high," in row
+
+    # 3. Acme tenant export (isolated empty workspace)
+    acme_headers = {"Authorization": f"Bearer {acme_token}"}
+    res_acme = client.get("/api/v1/churn/export", headers=acme_headers)
+    assert res_acme.status_code == 200
+    assert 'filename="at_risk_accounts_org_acme_corp.csv"' in res_acme.headers["content-disposition"]
+    acme_lines = res_acme.text.strip().splitlines()
+    assert len(acme_lines) == 1  # Only header, 0 accounts
+

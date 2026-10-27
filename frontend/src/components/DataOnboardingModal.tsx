@@ -114,89 +114,103 @@ export const DataOnboardingModal: React.FC<DataOnboardingModalProps> = ({
   const quality = uploadResult ? uploadResult.quality_summary : statusData?.quality_summary;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-900 border border-slate-800 rounded-xl shadow-2xl text-slate-100 flex flex-col">
+    <div
+      className="modal-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-onboarding-title">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80 sticky top-0 z-10 backdrop-blur">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <UploadCloud className="w-5 h-5" />
+        <div className="modal-header">
+          <div className="modal-header-info">
+            <div className="modal-icon-badge">
+              <UploadCloud size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Customer Data Onboarding</h2>
-              <p className="text-xs text-slate-400">
+              <h2 id="modal-onboarding-title" className="modal-title">
+                Customer Data Onboarding
+              </h2>
+              <p className="modal-subtitle">
                 Ingest customer event telemetry directly into isolated tenant storage
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="modal-close-btn" aria-label="Close modal">
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6 flex-1">
+        {/* Body */}
+        <div className="modal-body">
           {/* Active Tenant Storage Context */}
-          <div className="p-4 rounded-lg bg-slate-950/60 border border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <Database className="w-5 h-5 text-indigo-400" />
+          <div className="modal-context-bar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Database size={18} color="var(--accent-teal)" />
               <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold text-slate-300">{tenantName}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {tenantName}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      padding: '2px 6px',
+                      background: 'var(--bg-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--text-muted)',
+                      fontFamily: 'monospace',
+                    }}
+                  >
                     {tenantId}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                   {loadingStatus ? (
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Checking tenant storage...
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <RefreshCw size={12} className="spin-icon" /> Checking tenant storage...
                     </span>
                   ) : statusData?.has_data ? (
-                    <span className="text-emerald-400 flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Tenant-Isolated Dataset Ingested
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--accent-lime)' }}>
+                      <ShieldCheck size={13} /> Tenant-Isolated Dataset Ingested
                     </span>
                   ) : (
-                    <span className="text-amber-400 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> Viewing Synthetic Reference Data
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--accent-amber)' }}>
+                      <Clock size={13} /> Viewing Synthetic Reference Data
                     </span>
                   )}
-                </p>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <a
-                href={api.getTemplateDownloadUrl()}
-                download="orbit_analytics_template.csv"
-                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>CSV Template</span>
-              </a>
-            </div>
+            <a
+              href={api.getTemplateDownloadUrl()}
+              download="orbit_analytics_template.csv"
+              className="btn-export"
+              title="Download canonical CSV format template"
+            >
+              <Download size={14} />
+              <span>CSV Template</span>
+            </a>
           </div>
 
-          {/* Schema Requirements Pill Banner */}
-          <div className="p-4 rounded-lg bg-indigo-950/20 border border-indigo-900/40 text-xs space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-indigo-300">Data Contract & Canonical Events</span>
-              <span className="text-[10px] text-slate-400">Max size: 10MB • Max rows: 100,000</span>
+          {/* Schema Requirements Banner */}
+          <div className="modal-data-contract">
+            <div className="contract-header">
+              <span className="contract-title">Data Contract & Canonical Events</span>
+              <span className="contract-limits">Max size: 10MB • Max rows: 100,000</span>
             </div>
-            <p className="text-slate-300 leading-relaxed">
-              Required columns: <code className="text-indigo-400 font-mono">user_id</code>,{' '}
-              <code className="text-indigo-400 font-mono">event_name</code>,{' '}
-              <code className="text-indigo-400 font-mono">event_timestamp</code>. Optional:{' '}
-              <code className="text-slate-400 font-mono">acquisition_channel</code>.
+            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              Required columns:{' '}
+              <code style={{ color: 'var(--accent-teal)', fontFamily: 'monospace' }}>user_id</code>,{' '}
+              <code style={{ color: 'var(--accent-teal)', fontFamily: 'monospace' }}>event_name</code>,{' '}
+              <code style={{ color: 'var(--accent-teal)', fontFamily: 'monospace' }}>event_timestamp</code>.{' '}
+              Optional:{' '}
+              <code style={{ color: 'var(--text-muted)', fontFamily: 'monospace' }}>acquisition_channel</code>.
             </p>
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div className="contract-events">
               {['signup', 'workspace_created', 'invite_sent', 'first_project', 'paid'].map((evt) => (
-                <span
-                  key={evt}
-                  className="px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 font-mono text-[11px] border border-slate-700"
-                >
+                <span key={evt} className="event-pill">
                   {evt}
                 </span>
               ))}
@@ -208,100 +222,117 @@ export const DataOnboardingModal: React.FC<DataOnboardingModalProps> = ({
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
-              selectedFile
-                ? 'border-indigo-500 bg-indigo-500/5'
-                : 'border-slate-700 hover:border-slate-500 bg-slate-950/40 hover:bg-slate-950/70'
-            }`}
+            className={`modal-dropzone ${selectedFile ? 'active' : ''}`}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click();
+            }}
+            aria-label="Upload CSV dropzone"
           >
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
               accept=".csv"
-              className="hidden"
+              style={{ display: 'none' }}
             />
-            <div className="flex flex-col items-center justify-center space-y-2">
-              <div className="p-3 rounded-full bg-slate-800 text-slate-300">
-                <FileText className="w-6 h-6" />
-              </div>
-              {selectedFile ? (
-                <div>
-                  <p className="text-sm font-medium text-white">{selectedFile.name}</p>
-                  <p className="text-xs text-indigo-400 mt-0.5">
-                    {(selectedFile.size / 1024).toFixed(1)} KB — Ready to validate & ingest
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm font-medium text-slate-300">
-                    Click to select or drag and drop a customer CSV file
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Standard UTF-8 encoded CSV with user events
-                  </p>
-                </div>
-              )}
+            <div className="dropzone-icon">
+              <FileText size={24} />
             </div>
+            {selectedFile ? (
+              <div>
+                <p style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {selectedFile.name}
+                </p>
+                <p style={{ fontSize: '0.78rem', color: 'var(--accent-teal)', marginTop: '2px' }}>
+                  {(selectedFile.size / 1024).toFixed(1)} KB — Ready to validate & ingest
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Click to select or drag and drop a customer CSV file
+                </p>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Standard UTF-8 encoded CSV with user events
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Error Message Alert */}
           {errorMessage && (
-            <div className="p-3 rounded-lg bg-red-950/40 border border-red-900/60 text-red-300 text-xs flex items-start space-x-2">
-              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="font-semibold">Validation Rejected</p>
-                <p className="mt-0.5">{errorMessage}</p>
+            <div className="modal-alert-error" role="alert">
+              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ display: 'block', marginBottom: '2px' }}>Validation Rejected</strong>
+                <span>{errorMessage}</span>
               </div>
             </div>
           )}
 
           {/* Ingestion & Quality Summary Panel */}
           {quality && (
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifySelf: 'stretch', justifyContent: 'space-between' }}>
+                <h3
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: 'var(--text-muted)',
+                  }}
+                >
                   Data Quality & Observation Summary
                 </h3>
                 {uploadResult && (
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded font-medium ${
-                      uploadResult.status === 'success'
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                    }`}
+                    className="tab-badge"
+                    style={{
+                      background:
+                        uploadResult.status === 'success'
+                          ? 'var(--accent-lime-subtle)'
+                          : 'var(--accent-amber-subtle)',
+                      color:
+                        uploadResult.status === 'success' ? 'var(--accent-lime)' : 'var(--accent-amber)',
+                      borderColor:
+                        uploadResult.status === 'success'
+                          ? 'rgba(132, 204, 22, 0.3)'
+                          : 'rgba(245, 158, 11, 0.3)',
+                    }}
                   >
                     {uploadResult.status === 'success' ? 'Validated & Ingested' : 'Ingested with Warnings'}
                   </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                  <span className="text-[10px] text-slate-500 block">Accepted Events</span>
-                  <span className="text-base font-bold text-emerald-400 font-mono">
+              <div className="quality-grid">
+                <div className="quality-card">
+                  <span className="quality-card-label">Accepted Events</span>
+                  <span className="quality-card-value" style={{ color: 'var(--accent-lime)' }}>
                     {quality.accepted_rows.toLocaleString()}
                   </span>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                  <span className="text-[10px] text-slate-500 block">Total Accounts</span>
-                  <span className="text-base font-bold text-indigo-400 font-mono">
+                <div className="quality-card">
+                  <span className="quality-card-label">Total Accounts</span>
+                  <span className="quality-card-value" style={{ color: 'var(--accent-teal)' }}>
                     {quality.total_unique_users.toLocaleString()}
                   </span>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                  <span className="text-[10px] text-slate-500 block">Rejected Rows</span>
+                <div className="quality-card">
+                  <span className="quality-card-label">Rejected Rows</span>
                   <span
-                    className={`text-base font-bold font-mono ${
-                      quality.rejected_rows > 0 ? 'text-rose-400' : 'text-slate-400'
-                    }`}
+                    className="quality-card-value"
+                    style={{ color: quality.rejected_rows > 0 ? 'var(--accent-coral)' : 'var(--text-muted)' }}
                   >
                     {quality.rejected_rows.toLocaleString()}
                   </span>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                  <span className="text-[10px] text-slate-500 block">Coverage Window</span>
-                  <span className="text-base font-bold text-cyan-400 font-mono">
+                <div className="quality-card">
+                  <span className="quality-card-label">Coverage Window</span>
+                  <span className="quality-card-value" style={{ color: 'var(--accent-sky)' }}>
                     {quality.coverage_days} day{quality.coverage_days === 1 ? '' : 's'}
                   </span>
                 </div>
@@ -309,12 +340,28 @@ export const DataOnboardingModal: React.FC<DataOnboardingModalProps> = ({
 
               {/* Window Completeness & Warnings */}
               {quality.warnings.length > 0 && (
-                <div className="p-3 rounded-lg bg-amber-950/30 border border-amber-900/50 space-y-1">
-                  <div className="flex items-center space-x-1.5 text-xs font-semibold text-amber-300">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                <div className="quality-advisory">
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontWeight: 600,
+                      color: 'var(--accent-amber)',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    <AlertTriangle size={14} />
                     <span>Data Quality Advisory</span>
                   </div>
-                  <ul className="text-xs text-amber-200/90 list-disc list-inside space-y-0.5 pl-1">
+                  <ul
+                    style={{
+                      paddingLeft: '18px',
+                      margin: 0,
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.78rem',
+                    }}
+                  >
                     {quality.warnings.map((w, idx) => (
                       <li key={idx}>{w}</li>
                     ))}
@@ -324,16 +371,37 @@ export const DataOnboardingModal: React.FC<DataOnboardingModalProps> = ({
 
               {/* Sample Rejections Collapsible */}
               {quality.rejected_rows > 0 && quality.rejection_samples.length > 0 && (
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs">
+                <div className="rejections-collapsible">
                   <button
+                    type="button"
                     onClick={() => setShowErrorSamples(!showErrorSamples)}
-                    className="flex items-center justify-between w-full text-slate-400 hover:text-slate-200"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-secondary)',
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                    }}
                   >
                     <span>Inspect Sample Rejections ({quality.rejection_samples.length} shown)</span>
-                    {showErrorSamples ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    {showErrorSamples ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </button>
                   {showErrorSamples && (
-                    <div className="mt-2 space-y-1 font-mono text-[11px] text-rose-300/80 bg-slate-900 p-2 rounded">
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        background: 'var(--bg-app)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        color: 'var(--accent-coral)',
+                      }}
+                    >
                       {quality.rejection_samples.map((sample, idx) => (
                         <div key={idx}>{sample}</div>
                       ))}
@@ -346,34 +414,28 @@ export const DataOnboardingModal: React.FC<DataOnboardingModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/80">
-          <span className="text-[11px] text-slate-500">
+        <div className="modal-footer">
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             Uploaded data replaces tenant mart and recalculates funnels live
           </span>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
-            >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button onClick={onClose} className="btn-secondary" type="button">
               {uploadResult ? 'Done' : 'Cancel'}
             </button>
             <button
               onClick={handleUpload}
               disabled={!selectedFile || uploading}
-              className={`flex items-center space-x-2 px-4 py-2 text-xs font-semibold rounded-lg transition shadow-lg ${
-                !selectedFile || uploading
-                  ? 'bg-indigo-600/50 text-indigo-300 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30'
-              }`}
+              className="btn-primary"
+              type="button"
             >
               {uploading ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <RefreshCw size={14} className="spin-icon" />
                   <span>Ingesting & Computing...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 size={14} />
                   <span>Ingest Customer Data</span>
                 </>
               )}

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 from pathlib import Path
 
 import duckdb
@@ -265,3 +267,33 @@ class FunnelService:
             channel_benchmarks=[],
             available_channels=[],
         )
+
+    def export_funnel_csv(self, filters: FunnelFilterParams) -> str:
+        """Export calculated funnel conversion stages as formatted CSV."""
+        metrics = self.get_funnel_metrics(filters)
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "step_order",
+            "step_id",
+            "name",
+            "description",
+            "entering_users",
+            "users_lost",
+            "step_conversion_rate",
+            "drop_off_rate",
+            "cumulative_conversion_rate",
+        ])
+        for s in metrics.stages:
+            writer.writerow([
+                s.step_order,
+                s.step_id,
+                s.name,
+                s.description,
+                s.entering_users,
+                s.users_lost,
+                f"{s.step_conversion_rate:.4f}",
+                f"{s.drop_off_rate:.4f}",
+                f"{s.cumulative_conversion_rate:.4f}",
+            ])
+        return output.getvalue()

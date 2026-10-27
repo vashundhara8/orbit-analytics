@@ -241,3 +241,32 @@ def test_tenant_switching_and_token_binding(demo_token: str, acme_token: str):
     assert res_demo_again.json()["tenant_id"] == settings.default_tenant_id
     assert res_demo_again.json()["cohort_size"] == 100000
 
+
+def test_export_funnel_stages_endpoint(demo_token: str, acme_token: str):
+    """Verify authorized funnel CSV export endpoint with server-side tenant isolation."""
+    # 1. Unauthenticated request rejected
+    unauth_res = client.get("/api/v1/funnel/export")
+    assert unauth_res.status_code == 401
+
+    # 2. Demo tenant export
+    demo_headers = {"Authorization": f"Bearer {demo_token}"}
+    res_demo = client.get("/api/v1/funnel/export", headers=demo_headers)
+    assert res_demo.status_code == 200
+    assert "text/csv" in res_demo.headers["content-type"]
+    assert f'filename="funnel_stages_{settings.default_tenant_id}.csv"' in res_demo.headers["content-disposition"]
+    lines = res_demo.text.strip().splitlines()
+    assert len(lines) == 6  # Header + 5 stages
+    assert lines[0] == "step_order,step_id,name,description,entering_users,users_lost,step_conversion_rate,drop_off_rate,cumulative_conversion_rate"
+    assert "Signup" in lines[1]
+    assert "100000" in lines[1]
+
+    # 3. Acme tenant export (isolated empty partition)
+    acme_headers = {"Authorization": f"Bearer {acme_token}"}
+    res_acme = client.get("/api/v1/funnel/export", headers=acme_headers)
+    assert res_acme.status_code == 200
+    assert 'filename="funnel_stages_org_acme_corp.csv"' in res_acme.headers["content-disposition"]
+    acme_lines = res_acme.text.strip().splitlines()
+    assert len(acme_lines) == 6
+    assert acme_lines[1].endswith(",0,0,0.0000,0.0000,0.0000")
+
+

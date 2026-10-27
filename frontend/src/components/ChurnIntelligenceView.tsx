@@ -8,6 +8,8 @@ import {
   Database,
   Layers,
   Info,
+  UploadCloud,
+  Download,
 } from 'lucide-react';
 import { api } from '../api/client';
 import {
@@ -17,9 +19,10 @@ import {
 
 interface ChurnIntelligenceViewProps {
   tenantId: string;
+  onOnboardClick?: () => void;
 }
 
-export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ tenantId }) => {
+export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ tenantId, onOnboardClick }) => {
   const [summary, setSummary] = useState<ChurnSummaryResponse | null>(null);
   const [accountsData, setAccountsData] = useState<ChurnAccountsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,18 @@ export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ te
   const [industry, setIndustry] = useState<string>('all');
   const [planType, setPlanType] = useState<string>('all');
   const [limit, setLimit] = useState<number>(25);
+  const [exporting, setExporting] = useState<boolean>(false);
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      await api.exportChurnCsv(riskTier, industry, planType, 500);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Export failed.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -112,10 +127,21 @@ export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ te
         <h3 className="empty-title" style={{ marginTop: '16px' }}>
           Isolated Tenant Workspace (Empty)
         </h3>
-        <p className="empty-desc">
+        <p className="empty-desc" style={{ marginBottom: '16px' }}>
           Tenant <code>{tenantId}</code> has no subscription or event records provisioned.
           Server-side boundaries prevent cross-tenant data leakage.
         </p>
+        {onOnboardClick && (
+          <button
+            type="button"
+            onClick={onOnboardClick}
+            className="btn-primary"
+            style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+          >
+            <UploadCloud size={16} />
+            <span>Upload Customer Data (CSV)</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -645,9 +671,21 @@ export const ChurnIntelligenceView: React.FC<ChurnIntelligenceViewProps> = ({ te
               Ranked accounts with point-in-time Day 30 post-upgrade observation cutoffs and exploratory review suggestions
             </p>
           </div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            Showing <strong>{accountsData?.accounts.length || 0}</strong> of{' '}
-            <strong>{accountsData?.total_matching.toLocaleString() || 0}</strong> matching accounts
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              Showing <strong>{accountsData?.accounts.length || 0}</strong> of{' '}
+              <strong>{accountsData?.total_matching.toLocaleString() || 0}</strong> matching accounts
+            </div>
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exporting || !accountsData || accountsData.accounts.length === 0}
+              className="btn-export"
+              title="Download scored at-risk accounts as CSV"
+            >
+              {exporting ? <RefreshCw size={13} className="spin-icon" /> : <Download size={13} />}
+              <span>{exporting ? 'Exporting...' : 'Export Accounts CSV'}</span>
+            </button>
           </div>
         </div>
 

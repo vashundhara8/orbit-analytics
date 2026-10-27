@@ -1,11 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Download, RefreshCw } from 'lucide-react';
+import { api } from '../api/client';
 import { FunnelStageItem } from '../types/api';
 
 interface StageEfficiencyTableProps {
   stages: FunnelStageItem[];
+  selectedChannel?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
-export const StageEfficiencyTable: React.FC<StageEfficiencyTableProps> = ({ stages }) => {
+export const StageEfficiencyTable: React.FC<StageEfficiencyTableProps> = ({
+  stages,
+  selectedChannel,
+  startDate,
+  endDate,
+}) => {
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      await api.exportFunnelCsv(selectedChannel, startDate, endDate);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Export failed.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="data-panel">
       <div className="section-header">
@@ -13,6 +36,16 @@ export const StageEfficiencyTable: React.FC<StageEfficiencyTableProps> = ({ stag
           <h3 className="section-title">Stage Efficiency & Drop-Off Table</h3>
           <p className="section-caption">Numerical stage-by-stage conversion and user leakage breakdown</p>
         </div>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={exporting || stages.length === 0}
+          className="btn-export"
+          title="Download stage metrics as an authorized CSV file"
+        >
+          {exporting ? <RefreshCw size={13} className="spin-icon" /> : <Download size={13} />}
+          <span>{exporting ? 'Exporting...' : 'Export CSV'}</span>
+        </button>
       </div>
 
       <div className="table-container">

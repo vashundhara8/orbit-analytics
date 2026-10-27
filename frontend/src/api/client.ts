@@ -177,6 +177,62 @@ class ApiClient {
     return this.request<IngestionStatusResponse>('/onboarding/status');
   }
 
+  async downloadFile(endpoint: string, fallbackFilename: string): Promise<void> {
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    const response = await fetch(`${API_BASE}${endpoint}`, { headers });
+    if (!response.ok) {
+      throw new Error(`Export download failed (${response.status})`);
+    }
+    const disposition = response.headers.get('Content-Disposition');
+    let filename = fallbackFilename;
+    if (disposition && disposition.includes('filename=')) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) filename = match[1];
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  async exportFunnelCsv(
+    channel?: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<void> {
+    const params = new URLSearchParams();
+    if (channel && channel !== 'All Channels') {
+      params.append('acquisition_channel', channel);
+    }
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    const q = params.toString() ? `?${params.toString()}` : '';
+    await this.downloadFile(`/funnel/export${q}`, 'funnel_stages.csv');
+  }
+
+  async exportChurnCsv(
+    riskTier?: string,
+    industry?: string,
+    planType?: string,
+    limit = 500
+  ): Promise<void> {
+    const params = new URLSearchParams();
+    if (riskTier && riskTier !== 'all') params.append('risk_tier', riskTier);
+    if (industry && industry !== 'all') params.append('industry', industry);
+    if (planType && planType !== 'all') params.append('plan_type', planType);
+    if (limit) params.append('limit', limit.toString());
+    const q = params.toString() ? `?${params.toString()}` : '';
+    await this.downloadFile(`/churn/export${q}`, 'churn_at_risk_accounts.csv');
+  }
+
   getTemplateDownloadUrl(): string {
     return `${API_BASE}/onboarding/template`;
   }

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from backend.app.auth.dependencies import get_current_tenant
 from backend.app.auth.models import TenantContext
@@ -45,4 +45,32 @@ async def get_at_risk_accounts(
         industry=industry,
         plan_type=plan_type,
         limit=limit,
+    )
+
+
+@router.get("/export", summary="Export Prioritized At-Risk Accounts to CSV")
+async def export_at_risk_accounts(
+    tenant: Annotated[TenantContext, Depends(get_current_tenant)],
+    risk_tier: Annotated[str | None, Query(description="Filter by risk tier: high, medium, low")] = None,
+    industry: Annotated[str | None, Query(description="Filter by industry")] = None,
+    plan_type: Annotated[str | None, Query(description="Filter by plan: pro, enterprise")] = None,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Maximum number of accounts to export")] = 500,
+) -> Response:
+    """Export scored at-risk customer accounts as an authorized CSV download.
+
+    Enforces server-side tenant isolation: exported accounts represent exclusively
+    the authenticated tenant's customer accounts.
+    """
+    service = ChurnService(tenant_id=tenant.tenant_id, org_name=tenant.organization_name)
+    csv_data = service.export_churn_csv(
+        risk_tier=risk_tier,
+        industry=industry,
+        plan_type=plan_type,
+        limit=limit,
+    )
+    filename = f"at_risk_accounts_{tenant.tenant_id}.csv"
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

@@ -81,6 +81,7 @@ export const App: React.FC = () => {
         tenantId={currentTenantId}
         userRole="Senior Analyst"
         onTenantSwitch={handleTenantSwitch}
+        onOnboardClick={() => setIsOnboardingOpen(true)}
       />
 
       <NavigationTabs activeTab={activeTab} onTabChange={setActiveTab} />
@@ -188,7 +189,12 @@ export const App: React.FC = () => {
                   />
 
                   <div className="split-grid">
-                    <StageEfficiencyTable stages={funnelData.stages} />
+                    <StageEfficiencyTable
+                      stages={funnelData.stages}
+                      selectedChannel={selectedChannel}
+                      startDate={startDate}
+                      endDate={endDate}
+                    />
                     <ChannelBenchmarkMatrix
                       benchmarks={funnelData.channel_benchmarks}
                       overallBenchmark={funnelData.overall_conversion_rate}
@@ -210,7 +216,7 @@ export const App: React.FC = () => {
             </p>
           </header>
 
-          <CohortRetentionView tenantId={currentTenantId} />
+          <CohortRetentionView tenantId={currentTenantId} onOnboardClick={() => setIsOnboardingOpen(true)} />
         </>
       )}
 
@@ -223,7 +229,7 @@ export const App: React.FC = () => {
             </p>
           </header>
 
-          <ExperimentationView tenantId={currentTenantId} />
+          <ExperimentationView tenantId={currentTenantId} onOnboardClick={() => setIsOnboardingOpen(true)} />
         </>
       )}
 
@@ -236,7 +242,7 @@ export const App: React.FC = () => {
             </p>
           </header>
 
-          <ChurnIntelligenceView tenantId={currentTenantId} />
+          <ChurnIntelligenceView tenantId={currentTenantId} onOnboardClick={() => setIsOnboardingOpen(true)} />
         </>
       )}
 

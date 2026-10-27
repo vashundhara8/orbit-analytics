@@ -9,6 +9,7 @@ import {
   DollarSign,
   Info,
   Coins,
+  UploadCloud,
 } from 'lucide-react';
 
 import { api } from '../api/client';
@@ -20,9 +21,10 @@ import {
 
 interface ExperimentationViewProps {
   tenantId: string;
+  onOnboardClick?: () => void;
 }
 
-export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenantId }) => {
+export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenantId, onOnboardClick }) => {
   const [experiments, setExperiments] = useState<ExperimentSummaryItem[]>([]);
   const [selectedExperiment, setSelectedExperiment] = useState('onboarding_v2');
   const [analysis, setAnalysis] = useState<ExperimentAnalysisResponse | null>(null);
@@ -196,10 +198,21 @@ export const ExperimentationView: React.FC<ExperimentationViewProps> = ({ tenant
               <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px' }}>
                 Isolated Empty Workspace
               </h3>
-              <p style={{ color: 'var(--text-secondary)', maxWidth: '540px', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              <p style={{ color: 'var(--text-secondary)', maxWidth: '540px', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '16px' }}>
                 Workspace <strong>{analysis.organization_name}</strong> ({analysis.tenant_id}) has strict tenant isolation enforced.
                 {' '}{analysis.decision_advisory}
               </p>
+              {onOnboardClick && (
+                <button
+                  type="button"
+                  onClick={onOnboardClick}
+                  className="btn-primary"
+                  style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+                >
+                  <UploadCloud size={16} />
+                  <span>Upload Customer Data (CSV)</span>
+                </button>
+              )}
             </div>
           ) : (
             <>

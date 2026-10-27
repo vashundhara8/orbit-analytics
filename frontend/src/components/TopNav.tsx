@@ -1,11 +1,12 @@
 import React from 'react';
-import { Layers, ShieldCheck, Building2 } from 'lucide-react';
+import { Layers, ShieldCheck, Building2, UploadCloud } from 'lucide-react';
 
 interface TopNavProps {
   organizationName: string;
   tenantId: string;
   userRole?: string;
   onTenantSwitch?: (tenantId: string) => void;
+  onOnboardClick?: () => void;
 }
 
 export const TopNav: React.FC<TopNavProps> = ({
@@ -13,6 +14,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   tenantId,
   userRole = 'Analyst',
   onTenantSwitch,
+  onOnboardClick,
 }) => {
   return (
     <header className="top-nav">
@@ -34,21 +36,23 @@ export const TopNav: React.FC<TopNavProps> = ({
               className="filter-select"
               value={tenantId}
               onChange={(e) => onTenantSwitch(e.target.value)}
-              style={{ fontSize: '0.82rem', padding: '4px 8px' }}
+              style={{ fontSize: '0.82rem', padding: '5px 10px' }}
               aria-label="Select Tenant Workspace"
             >
-              <option value="org_orbit_demo">Orbit Reference SaaS Corp [Synthetic Demo Benchmark]</option>
-              <option value="org_acme_corp">Acme Technologies Inc. [Isolated Customer Workspace]</option>
-              <option value="org_starlight_saas">Starlight Cloud SaaS [Isolated Customer Workspace]</option>
+              <option value="org_orbit_demo">Orbit Reference SaaS Corp [Synthetic Benchmark]</option>
+              <option value="org_acme_corp">Acme Technologies Inc. [Customer Workspace]</option>
+              <option value="org_starlight_saas">Starlight Cloud SaaS [Customer Workspace]</option>
             </select>
           </div>
         )}
 
-        <div className="tenant-badge" title="Tenant Boundary Enforced via Cryptographic JWT Claims">
+        <div className="tenant-badge" title={`Tenant: ${organizationName} (${tenantId}) — Enforced via Cryptographic JWT Claims`}>
           <span className="tenant-indicator" />
           <Building2 size={14} color="var(--accent-teal)" />
-          <strong style={{ color: 'var(--text-primary)' }}>{organizationName}</strong>
-          <span style={{ color: 'var(--text-muted)' }}>({tenantId})</span>
+          <strong style={{ color: 'var(--text-primary)', fontSize: '0.82rem' }}>{organizationName}</strong>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+            ({tenantId})
+          </span>
           {tenantId === 'org_orbit_demo' ? (
             <span
               className="tab-badge"
@@ -71,7 +75,7 @@ export const TopNav: React.FC<TopNavProps> = ({
               }}
               title="Cryptographically isolated customer workspace. Partition contains uploaded customer data."
             >
-              Isolated Customer Workspace
+              Isolated Partition
             </span>
           )}
         </div>
@@ -81,6 +85,19 @@ export const TopNav: React.FC<TopNavProps> = ({
           <span style={{ color: 'var(--text-muted)' }}>Role:</span>
           <strong style={{ color: 'var(--text-primary)' }}>{userRole}</strong>
         </div>
+
+        {onOnboardClick && (
+          <button
+            type="button"
+            onClick={onOnboardClick}
+            className="btn-primary"
+            style={{ padding: '6px 14px', fontSize: '0.82rem' }}
+            title="Ingest customer event telemetry directly into isolated tenant storage"
+          >
+            <UploadCloud size={14} />
+            <span>Onboard Data</span>
+          </button>
+        )}
       </div>
     </header>
   );
