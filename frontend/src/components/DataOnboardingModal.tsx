@@ -50,6 +50,20 @@ export const DataOnboardingModal: React.FC<DataOnboardingModalProps> = ({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   const loadStatus = async () => {
     try {
       setLoadingStatus(true);
@@ -236,6 +250,7 @@ export const DataOnboardingModal: React.FC<DataOnboardingModalProps> = ({
               onChange={handleFileChange}
               accept=".csv"
               style={{ display: 'none' }}
+              aria-label="Select CSV file for onboarding"
             />
             <div className="dropzone-icon">
               <FileText size={24} />

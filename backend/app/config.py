@@ -10,6 +10,12 @@ from pydantic import BaseModel, Field, model_validator
 
 DEV_DEFAULT_SECRET = "orbit_analytics_dev_secret_key_change_in_production_32chars"
 MIN_SECRET_LENGTH = 32
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
 
 class Settings(BaseModel):
@@ -26,6 +32,16 @@ class Settings(BaseModel):
     # Security: Demo mode configuration
     enable_demo_auth: bool = Field(
         default_factory=lambda: os.getenv("ENABLE_DEMO_AUTH", "true").lower() in ("true", "1")
+    )
+
+    # CORS configuration
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            o.strip()
+            for o in os.getenv("CORS_ORIGINS", "").split(",")
+            if o.strip()
+        ]
+        or DEFAULT_CORS_ORIGINS
     )
 
     # Storage paths

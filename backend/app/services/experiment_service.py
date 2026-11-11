@@ -360,7 +360,7 @@ class ExperimentService:
                 assigned_ts,
                 ROW_NUMBER() OVER (PARTITION BY user_id, experiment_name ORDER BY assigned_ts ASC) AS rn
             FROM read_parquet('{raw_exp}')
-            WHERE experiment_name = '{experiment_name}'
+            WHERE experiment_name = ?
         ),
         dedup_exp AS (
             SELECT user_id, experiment_name, variant, assigned_ts
@@ -429,19 +429,19 @@ class ExperimentService:
         WITH dedup_exp AS (
             SELECT user_id, MIN(assigned_ts) AS assigned_ts
             FROM read_parquet('{raw_exp}')
-            WHERE experiment_name = '{experiment_name}'
+            WHERE experiment_name = ?
             GROUP BY user_id
         )
         SELECT
-            (SELECT COUNT(*) - COUNT(DISTINCT user_id) FROM read_parquet('{raw_exp}') WHERE experiment_name = '{experiment_name}') AS duplicate_assignments,
+            (SELECT COUNT(*) - COUNT(DISTINCT user_id) FROM read_parquet('{raw_exp}') WHERE experiment_name = ?) AS duplicate_assignments,
             (SELECT COUNT(*) FROM dedup_exp e LEFT JOIN read_parquet('{raw_subs}') s ON e.user_id = s.user_id WHERE s.user_id IS NULL) AS missing_subs,
             (SELECT COUNT(*) FROM dedup_exp e JOIN read_parquet('{raw_subs}') s ON e.user_id = s.user_id WHERE s.paid_start_date < e.assigned_ts) AS pre_assignment_conversions
         """
 
         con = duckdb.connect()
         try:
-            df = con.execute(query).fetchdf()
-            diag_df = con.execute(diag_query).fetchdf()
+            df = con.execute(query, [experiment_name]).fetchdf()
+            diag_df = con.execute(diag_query, [experiment_name, experiment_name]).fetchdf()
         except Exception:
             return self._build_empty_revenue_response(experiment_name)
         finally:

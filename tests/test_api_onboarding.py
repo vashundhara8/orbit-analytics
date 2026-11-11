@@ -88,6 +88,45 @@ def test_upload_invalid_file_extension(acme_token: str):
     assert "Only .csv files are supported" in response.json()["detail"]
 
 
+def test_upload_oversized_file(acme_token: str):
+    """Verify 413 Payload Too Large when file exceeds 10MB."""
+    headers = {"Authorization": f"Bearer {acme_token}"}
+    # 10MB + 1KB dummy content
+    oversized_bytes = b"user_id,event_name,event_timestamp\n" + (b"a" * (10 * 1024 * 1024 + 1024))
+    files = {"file": ("oversized.csv", oversized_bytes, "text/csv")}
+    response = client.post("/api/v1/onboarding/upload", headers=headers, files=files)
+    assert response.status_code == 413
+    assert "exceeds maximum allowed size" in response.json()["detail"]
+
+
+def test_upload_invalid_encoding(acme_token: str):
+    """Verify 400 rejection on non-UTF-8 binary encoding."""
+    headers = {"Authorization": f"Bearer {acme_token}"}
+    invalid_bytes = b"\xff\xfe\x00\x00user_id,event_name,event_timestamp\n"
+    files = {"file": ("corrupt.csv", invalid_bytes, "text/csv")}
+    response = client.post("/api/v1/onboarding/upload", headers=headers, files=files)
+    assert response.status_code == 400
+    assert "Invalid file encoding" in response.json()["detail"]
+
+
+def test_upload_all_invalid_rows_returns_422(acme_token: str):
+    """Verify 422 Unprocessable Entity when all rows fail validation."""
+    headers = {"Authorization": f"Bearer {acme_token}"}
+    invalid_csv = """user_id,event_name,event_timestamp
+usr_01,unsupported_action_1,2025-01-01 10:00:00
+usr_02,unsupported_action_2,2025-01-01 10:00:00
+,signup,2025-01-01 10:00:00
+"""
+    files = {"file": ("all_invalid.csv", invalid_csv.encode(), "text/csv")}
+    response = client.post("/api/v1/onboarding/upload", headers=headers, files=files)
+    assert response.status_code == 422
+    err_detail = response.json()["detail"]
+    assert err_detail["error"] == "ValidationFailed"
+    assert "All rows in the uploaded file were invalid or malformed" in err_detail["message"]
+    assert err_detail["total_rows"] == 3
+
+
+
 def test_upload_validation_and_rejection_summary(acme_token: str):
     """Verify detailed rejection accounting: invalid timestamps, blanks, and duplicates."""
     headers = {"Authorization": f"Bearer {acme_token}"}
